@@ -1,86 +1,47 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import DigitalWarrantyModal from './DigitalWarrantyModal';
 
 const BookingsDashboard = () => {
-  const [bookings] = useState([
-    {
-      id: 'BK001',
-      date: '2024-01-15',
-      deviceType: 'Smartphone',
-      deviceModel: 'iPhone 13',
-      issue: 'Broken Screen',
-      technician: 'John Smith',
-      warrantyToken: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b',
-      warrantyExpiry: '2025-01-15',
-      status: 'completed',
-      cost: 299.99,
-    },
-    {
-      id: 'BK002',
-      date: '2024-01-10',
-      deviceType: 'Laptop',
-      deviceModel: 'MacBook Pro 2021',
-      issue: 'Battery Replacement',
-      technician: 'Sarah Johnson',
-      warrantyToken: '0x8ba1f109551bD432803012645Hac136c8C69C4b4',
-      warrantyExpiry: '2025-01-10',
-      status: 'completed',
-      cost: 199.99,
-    },
-    {
-      id: 'BK003',
-      date: '2024-01-05',
-      deviceType: 'Smartphone',
-      deviceModel: 'Samsung Galaxy S22',
-      issue: 'Charging Port Repair',
-      technician: 'Mike Wilson',
-      warrantyToken: '0x3f5CE599Fe13D5324834C5bBbC3bC4b4d8b4C9db',
-      warrantyExpiry: '2025-01-05',
-      status: 'completed',
-      cost: 89.99,
-    },
-    {
-      id: 'BK004',
-      date: '2023-12-28',
-      deviceType: 'Laptop',
-      deviceModel: 'Dell XPS 15',
-      issue: 'Software Issues',
-      technician: 'Emily Davis',
-      warrantyToken: '0x5aAeb6053f3E94C9b9A09f33669435E7Ef1BeAed',
-      warrantyExpiry: '2024-12-28',
-      status: 'completed',
-      cost: 149.99,
-    },
-    {
-      id: 'BK005',
-      date: '2023-12-20',
-      deviceType: 'Smartphone',
-      deviceModel: 'Google Pixel 7',
-      issue: 'Camera Replacement',
-      technician: 'David Brown',
-      warrantyToken: '0x742d35Cc6634C0532925a3b8D4C9db96C4b4d8b',
-      warrantyExpiry: '2024-12-20',
-      status: 'completed',
-      cost: 179.99,
-    },
-    {
-      id: 'BK006',
-      date: '2023-12-15',
-      deviceType: 'Tablet',
-      deviceModel: 'iPad Air 2022',
-      issue: 'Screen Replacement',
-      technician: 'Lisa Anderson',
-      warrantyToken: '0x8ba1f109551bD432803012645Hac136c8C69C4b4',
-      warrantyExpiry: '2024-12-15',
-      status: 'completed',
-      cost: 249.99,
-    },
-  ]);
+  const [bookings, setBookings] = useState([]);
+  const [selectedBooking, setSelectedBooking] = useState(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
 
   const [filter, setFilter] = useState('all');
+
+  // Fetch real bookings data from server
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const response = await fetch(`${apiUrl}/api/v1/bookings`);
+        if (response.ok) {
+          const result = await response.json();
+          if (result.success) {
+            setBookings(result.bookings);
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching bookings:', error);
+      }
+    };
+
+    fetchBookings();
+  }, []);
+
+  const openWarrantyModal = (booking) => {
+    setSelectedBooking(booking);
+    setIsModalOpen(true);
+  };
+
+  const closeWarrantyModal = () => {
+    setSelectedBooking(null);
+    setIsModalOpen(false);
+  };
 
   const getDeviceIcon = (deviceType) => {
     switch (deviceType) {
       case 'Smartphone':
+        return '';
         return '📱';
       case 'Laptop':
         return '💻';
@@ -114,10 +75,8 @@ const BookingsDashboard = () => {
     return true;
   });
 
-  const handleWarrantyClick = (token) => {
-    // In a real app, this would open a blockchain explorer or warranty details page
-    console.log('View warranty token:', token);
-    alert(`Warranty Token: ${token}\n\nThis would open the warranty details page.`);
+  const handleWarrantyClick = (booking) => {
+    openWarrantyModal(booking);
   };
 
   return (
@@ -259,6 +218,13 @@ const BookingsDashboard = () => {
           <p className="text-gray-600">No bookings match your current filter.</p>
         </div>
       )}
+      
+      {/* Digital Warranty Modal */}
+      <DigitalWarrantyModal 
+        booking={selectedBooking}
+        isOpen={isModalOpen}
+        onClose={closeWarrantyModal}
+      />
     </div>
   );
 };

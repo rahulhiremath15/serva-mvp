@@ -1,0 +1,22 @@
+[
+  {
+    "bookingId": "BKMKPB3RVJ3E6QF",
+    "deviceType": "smartphone",
+    "issue": "broken-screen",
+    "preferredTime": "10:00 AM",
+    "address": "123 Test St",
+    "photo": null,
+    "createdAt": "2026-01-22T10:26:03.103Z",
+    "status": "pending"
+  },
+  {
+    "bookingId": "BKMKPBFSGTT17PJ",
+    "deviceType": "laptop",
+    "issue": "battery",
+    "preferredTime": "12:00 PM",
+    "address": "Bengaluru",
+    "photo": null,
+    "createdAt": "2026-01-22T10:35:23.741Z",
+    "status": "pending"
+  }
+]

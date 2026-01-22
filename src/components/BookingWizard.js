@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const BookingWizard = () => {
+  const navigate = useNavigate();
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingData, setBookingData] = useState({
     deviceType: '',
@@ -85,6 +87,9 @@ const BookingWizard = () => {
 
   const handleSubmit = async () => {
     try {
+      console.log('Starting booking submission...');
+      console.log('Booking data:', bookingData);
+      
       const formData = new FormData();
       formData.append('deviceType', bookingData.deviceType);
       formData.append('issue', bookingData.issue);
@@ -97,13 +102,35 @@ const BookingWizard = () => {
       formData.append('preferredTime', bookingData.preferredTime);
       formData.append('address', bookingData.address);
 
-      const response = await fetch('/api/v1/bookings', {
+      console.log('Sending request to: http://localhost:5000/api/v1/bookings');
+      console.log('FormData contents:');
+      for (let [key, value] of formData.entries()) {
+        console.log(`${key}:`, value);
+      }
+
+      const response = await fetch('http://localhost:5000/api/v1/bookings', {
         method: 'POST',
         body: formData,
       });
 
+      console.log('Response status:', response.status);
+      console.log('Response headers:', response.headers);
+
       if (response.ok) {
-        alert('Booking confirmed successfully!');
+        const result = await response.json();
+        
+        // Navigate to success page with booking data
+        navigate('/success', { 
+          state: { 
+            bookingData: result.booking || {
+              bookingId: result.bookingId,
+              deviceType: bookingData.deviceType,
+              issue: bookingData.issue,
+              preferredTime: bookingData.preferredTime
+            }
+          } 
+        });
+        
         // Reset form
         setCurrentStep(1);
         setBookingData({
@@ -115,10 +142,13 @@ const BookingWizard = () => {
           address: '',
         });
       } else {
-        alert('Failed to submit booking. Please try again.');
+        const errorData = await response.json().catch(() => ({}));
+        console.error('Server error response:', errorData);
+        alert(errorData.message || 'Failed to submit booking. Please try again.');
       }
     } catch (error) {
-      alert('Error submitting booking. Please try again.');
+      console.error('Network/JavaScript error:', error);
+      alert(`Error submitting booking: ${error.message || 'Unknown error'}. Please try again.`);
     }
   };
 

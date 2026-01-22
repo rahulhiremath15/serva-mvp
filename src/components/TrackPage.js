@@ -1,53 +1,17 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
+import { useLocation } from 'react-router-dom';
 
 const TrackPage = () => {
+  const location = useLocation();
   const [bookingId, setBookingId] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
 
-  // Dummy tracking data
-  const dummyTrackingData = {
-    'BK001': {
-      id: 'BK001',
-      deviceType: 'Smartphone',
-      deviceModel: 'iPhone 13',
-      issue: 'Broken Screen',
-      status: 'completed',
-      currentStep: 5,
-      estimatedCompletion: '2024-01-15T14:00:00Z',
-      technician: 'John Smith',
-      customerName: 'Alice Johnson',
-      timeline: [
-        { step: 1, title: 'Booking Confirmed', time: '2024-01-15T09:00:00Z', completed: true },
-        { step: 2, title: 'Technician Assigned', time: '2024-01-15T09:30:00Z', completed: true },
-        { step: 3, title: 'Device Picked Up', time: '2024-01-15T10:00:00Z', completed: true },
-        { step: 4, title: 'Repair in Progress', time: '2024-01-15T11:00:00Z', completed: true },
-        { step: 5, title: 'Repair Completed', time: '2024-01-15T13:30:00Z', completed: true },
-      ]
-    },
-    'BK002': {
-      id: 'BK002',
-      deviceType: 'Laptop',
-      deviceModel: 'MacBook Pro 2021',
-      issue: 'Battery Replacement',
-      status: 'in_progress',
-      currentStep: 4,
-      estimatedCompletion: '2024-01-22T16:00:00Z',
-      technician: 'Sarah Johnson',
-      customerName: 'Bob Wilson',
-      timeline: [
-        { step: 1, title: 'Booking Confirmed', time: '2024-01-22T08:00:00Z', completed: true },
-        { step: 2, title: 'Technician Assigned', time: '2024-01-22T08:30:00Z', completed: true },
-        { step: 3, title: 'Device Picked Up', time: '2024-01-22T09:00:00Z', completed: true },
-        { step: 4, title: 'Repair in Progress', time: '2024-01-22T10:00:00Z', completed: true },
-        { step: 5, title: 'Repair Completed', time: null, completed: false },
-      ]
-    }
-  };
-
-  const handleTrack = async () => {
-    if (!bookingId.trim()) {
+  const handleTrack = useCallback(async (id = null) => {
+    const trackingId = id || bookingId;
+    
+    if (!trackingId.trim()) {
       setError('Please enter a booking ID');
       return;
     }
@@ -56,18 +20,46 @@ const TrackPage = () => {
     setError('');
     setTrackingResult(null);
 
-    // Simulate API call
-    setTimeout(() => {
-      setIsLoading(false);
+    try {
+      // Call real API instead of using dummy data
+      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`);
       
-      const result = dummyTrackingData[bookingId.toUpperCase()];
-      if (result) {
-        setTrackingResult(result);
-      } else {
-        setError('Booking ID not found. Try BK001 or BK002 for demo.');
+      if (!response.ok) {
+        if (response.status === 404) {
+          setError('Booking ID not found. Please check your booking ID and try again.');
+        } else {
+          setError('Failed to track booking. Please try again later.');
+        }
+        setIsLoading(false);
+        return;
       }
-    }, 1500);
-  };
+
+      const result = await response.json();
+      
+      if (result.success) {
+        setTrackingResult(result.booking);
+      } else {
+        setError(result.message || 'Failed to track booking.');
+      }
+    } catch (error) {
+      console.error('Error tracking booking:', error);
+      setError('Network error. Please check your connection and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [bookingId]);
+
+  // Extract booking ID from URL query parameters
+  useEffect(() => {
+    const queryParams = new URLSearchParams(location.search);
+    const id = queryParams.get('id');
+    if (id) {
+      setBookingId(id);
+      // Auto-track if ID is provided in URL
+      handleTrack(id);
+    }
+  }, [location.search, handleTrack]);
 
   const formatTime = (timeString) => {
     if (!timeString) return 'Pending';
@@ -215,36 +207,6 @@ const TrackPage = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* Demo Info */}
-        {!trackingResult && (
-          <div className="text-center py-8">
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 max-w-md mx-auto">
-              <h3 className="text-lg font-semibold text-blue-900 mb-2">Demo Booking IDs</h3>
-              <p className="text-blue-700 mb-4">Try these booking IDs to see the tracking in action:</p>
-              <div className="space-y-2">
-                <button
-                  onClick={() => {
-                    setBookingId('BK001');
-                    handleTrack();
-                  }}
-                  className="w-full text-left px-4 py-2 bg-white rounded border border-blue-200 hover:bg-blue-50 transition-colors"
-                >
-                  <span className="font-medium">BK001</span> - Completed Repair
-                </button>
-                <button
-                  onClick={() => {
-                    setBookingId('BK002');
-                    handleTrack();
-                  }}
-                  className="w-full text-left px-4 py-2 bg-white rounded border border-blue-200 hover:bg-blue-50 transition-colors"
-                >
-                  <span className="font-medium">BK002</span> - In Progress
-                </button>
               </div>
             </div>
           </div>

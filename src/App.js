@@ -6,6 +6,7 @@ import OTPLogin from './components/OTPLogin';
 import BookingsDashboard from './components/BookingsDashboard';
 import HomePage from './components/HomePage';
 import TrackPage from './components/TrackPage';
+import SuccessPage from './components/SuccessPage';
 
 // Navigation component
 const Navigation = () => {
@@ -85,7 +86,7 @@ const Navigation = () => {
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gray-50">
+      <div className="min-h-screen bg-gray-50 font-sans">
         <Navigation />
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -94,6 +95,7 @@ function App() {
           <Route path="/repairs" element={<BookingsDashboard />} />
           <Route path="/login" element={<OTPLogin />} />
           <Route path="/technician" element={<TechnicianDashboard />} />
+          <Route path="/success" element={<SuccessPage />} />
         </Routes>
       </div>
     </Router>
