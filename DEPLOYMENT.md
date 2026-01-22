@@ -33,11 +33,13 @@ services:
     name: serva-api
     env: node
     plan: free
-    buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
       - key: NODE_ENV
         value: production
+      - key: PORT
+        value: 10000
+    healthCheckPath: /api/v1/bookings
 ```
 
 ### 2. Push to GitHub
@@ -54,9 +56,8 @@ git push origin main
 4. Select the `Serva` repository
 5. Root Directory: `server`
 6. Runtime: Node
-7. Build Command: `npm install`
-8. Start Command: `npm start`
-9. Click "Create Web Service"
+7. Start Command: `npm start`
+8. Click "Create Web Service"
 
 ### 4. Update CORS in Production
 In `server/index.js`, update CORS:
@@ -137,6 +138,23 @@ git push origin main
 3. **Build Failures**: Verify `package.json` scripts
 4. **Sleep Issues**: Consider upgrading to paid tier for production
 
+### Specific Render Issues:
+
+#### ❌ "Missing script: build" Error
+**Problem:** Render tries to run `npm run build` but your backend doesn't need it.
+
+**Solution:** 
+- Use the updated `render.yaml` configuration (no build command)
+- Or in Render dashboard: Settings → Build & Deploy → Build Command → Leave empty
+- Only set Start Command to `npm start`
+
+#### ❌ Port Issues
+**Problem:** Server tries to use port 5000 but Render uses port 10000
+
+**Solution:** 
+- Your server already uses `process.env.PORT || 5000`
+- Render automatically sets PORT environment variable
+
 ### Debug Commands:
 ```bash
 # Check Vercel logs
@@ -144,4 +162,9 @@ vercel logs
 
 # Check Render logs
 # Go to Render dashboard → Logs tab
+
+# Test backend locally
+cd server
+npm start
+curl http://localhost:5000/api/v1/bookings
 ```
