@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { Fragment } from 'react';
 import QRCode from 'qrcode.react';
 
 const DigitalWarrantyModal = ({ booking, isOpen, onClose }) => {
@@ -106,7 +106,9 @@ const DigitalWarrantyModal = ({ booking, isOpen, onClose }) => {
                   <svg className="w-4 h-4 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 15v2m-6 4h12a2 2 0 012 2v6a2 2 0 01-2-2H6a2 2 0 00-2-2v6a2 2 0 002 2h3zm0 0h14v3h-14v-3z" />
                   </svg>
-                  <span>Blockchain Verified</span>
+                  <Fragment>
+                    <span>Blockchain Verified</span>
+                  </Fragment>
                 </div>
               </div>
             </div>
@@ -115,7 +117,7 @@ const DigitalWarrantyModal = ({ booking, isOpen, onClose }) => {
             <div className="border-t pt-4">
               <div className="text-center text-sm text-gray-600">
                 <p>This certificate is permanently recorded on the blockchain</p>
-                <p className="mt-1">© 2024 Serva Digital Warranty System</p>
+                <p className="mt-1"> 2024 Serva Digital Warranty System</p>
               </div>
             </div>
           </div>
