@@ -41,7 +41,6 @@ const BookingsDashboard = () => {
   const getDeviceIcon = (deviceType) => {
     switch (deviceType) {
       case 'Smartphone':
-        return '';
         return '📱';
       case 'Laptop':
         return '💻';
