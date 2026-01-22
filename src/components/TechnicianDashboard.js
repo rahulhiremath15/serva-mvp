@@ -56,14 +56,6 @@ const TechnicianDashboard = () => {
     },
   ]);
 
-  const statusFlow = {
-    assigned: ['accepted'],
-    accepted: ['en_route'],
-    en_route: ['in_progress'],
-    in_progress: ['completed'],
-    completed: [],
-  };
-
   const statusLabels = {
     assigned: 'Assigned',
     accepted: 'Accepted',

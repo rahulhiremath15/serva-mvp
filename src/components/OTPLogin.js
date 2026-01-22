@@ -18,7 +18,7 @@ const OTPLogin = () => {
   }, [resendTimer]);
 
   const validatePhoneNumber = (phone) => {
-    const phoneRegex = /^[+]?[\d\s\-\(\)]+$/;
+    const phoneRegex = /^[+]?[\d\s-(]+$/;
     return phoneRegex.test(phone) && phone.replace(/\D/g, '').length >= 10;
   };
 

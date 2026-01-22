@@ -5,6 +5,7 @@ const BookingWizard = () => {
   const [bookingData, setBookingData] = useState({
     deviceType: '',
     issue: '',
+    customIssueDescription: '',
     photo: null,
     preferredTime: '',
     address: '',
@@ -30,6 +31,7 @@ const BookingWizard = () => {
       { id: 'software', name: 'Software Problems' },
       { id: 'charging-port', name: 'Charging Port' },
       { id: 'camera', name: 'Camera Issues' },
+      { id: 'other', name: 'Other' },
     ],
     laptop: [
       { id: 'broken-screen', name: 'Broken Screen' },
@@ -37,6 +39,7 @@ const BookingWizard = () => {
       { id: 'software', name: 'Software Problems' },
       { id: 'keyboard', name: 'Keyboard Issues' },
       { id: 'overheating', name: 'Overheating' },
+      { id: 'other', name: 'Other' },
     ],
   };
 
@@ -58,11 +61,15 @@ const BookingWizard = () => {
   };
 
   const handleDeviceTypeSelect = (type) => {
-    setBookingData({ ...bookingData, deviceType: type, issue: '' });
+    setBookingData({ ...bookingData, deviceType: type, issue: '', customIssueDescription: '' });
   };
 
   const handleIssueSelect = (issue) => {
-    setBookingData({ ...bookingData, issue });
+    setBookingData({ ...bookingData, issue, customIssueDescription: issue === 'other' ? '' : bookingData.customIssueDescription });
+  };
+
+  const handleCustomIssueDescriptionChange = (description) => {
+    setBookingData({ ...bookingData, customIssueDescription: description });
   };
 
   const handlePhotoUpload = (e) => {
@@ -81,6 +88,9 @@ const BookingWizard = () => {
       const formData = new FormData();
       formData.append('deviceType', bookingData.deviceType);
       formData.append('issue', bookingData.issue);
+      if (bookingData.issue === 'other' && bookingData.customIssueDescription) {
+        formData.append('customIssueDescription', bookingData.customIssueDescription);
+      }
       if (bookingData.photo) {
         formData.append('photo', bookingData.photo);
       }
@@ -99,6 +109,7 @@ const BookingWizard = () => {
         setBookingData({
           deviceType: '',
           issue: '',
+          customIssueDescription: '',
           photo: null,
           preferredTime: '',
           address: '',
@@ -155,6 +166,20 @@ const BookingWizard = () => {
                 </button>
               ))}
             </div>
+            {bookingData.issue === 'other' && (
+              <div className="mt-4">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Please describe your issue
+                </label>
+                <textarea
+                  value={bookingData.customIssueDescription}
+                  onChange={(e) => handleCustomIssueDescriptionChange(e.target.value)}
+                  placeholder="Describe the problem with your device in detail..."
+                  rows={4}
+                  className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
+                />
+              </div>
+            )}
           </div>
         );
 
@@ -254,7 +279,10 @@ const BookingWizard = () => {
               <div>
                 <span className="font-medium text-gray-700">Issue:</span>
                 <span className="ml-2 text-gray-900">
-                  {issues[bookingData.deviceType]?.find(i => i.id === bookingData.issue)?.name}
+                  {bookingData.issue === 'other' 
+                    ? `Other: ${bookingData.customIssueDescription || 'Not specified'}`
+                    : issues[bookingData.deviceType]?.find(i => i.id === bookingData.issue)?.name
+                  }
                 </span>
               </div>
               {bookingData.photo && (
@@ -291,7 +319,7 @@ const BookingWizard = () => {
       case 1:
         return !bookingData.deviceType;
       case 2:
-        return !bookingData.issue;
+        return !bookingData.issue || (bookingData.issue === 'other' && !bookingData.customIssueDescription.trim());
       case 3:
         return false; // Photo is optional
       case 4:
