@@ -95,6 +95,16 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: '1.0.1' });
 });
 
+// Unique deployment verification endpoint
+app.get('/deploy-test', (req, res) => {
+  res.json({ 
+    message: 'DEPLOYMENT SUCCESSFUL!', 
+    timestamp: new Date().toISOString(),
+    commit: 'latest-code-deployed',
+    random: Math.random().toString(36).substr(2, 9)
+  });
+});
+
 // Test route to verify server is working
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
