@@ -28,13 +28,6 @@ app.use((req, res, next) => {
   next();
 });
 
-// Log all registered routes
-app._router.stack.forEach((middleware) => {
-  if (middleware.route) {
-    console.log(`Route: ${middleware.route.path} [${Object.keys(middleware.route.methods).join(', ')}]`);
-  }
-});
-
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
