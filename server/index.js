@@ -90,6 +90,11 @@ function writeBookings(bookings) {
   }
 }
 
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', version: '1.0.1' });
+});
+
 // Test route to verify server is working
 app.get('/api/test', (req, res) => {
   res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
