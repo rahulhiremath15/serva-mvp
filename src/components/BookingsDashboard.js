@@ -12,13 +12,19 @@ const BookingsDashboard = () => {
   useEffect(() => {
     const fetchBookings = async () => {
       try {
-        const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+        const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
+        console.log('Fetching bookings from:', apiUrl);
         const response = await fetch(`${apiUrl}/api/v1/bookings`);
+        console.log('Response status:', response.status);
+        
         if (response.ok) {
           const result = await response.json();
+          console.log('Bookings data:', result);
           if (result.success) {
             setBookings(result.bookings);
           }
+        } else {
+          console.error('API response not ok:', response.status);
         }
       } catch (error) {
         console.error('Error fetching bookings:', error);
