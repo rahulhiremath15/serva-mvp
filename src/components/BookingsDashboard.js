@@ -71,6 +71,7 @@ const BookingsDashboard = () => {
   };
 
   const formatToken = (token) => {
+    if (!token) return 'No Token';
     return `${token.slice(0, 6)}...${token.slice(-4)}`;
   };
 
@@ -81,6 +82,10 @@ const BookingsDashboard = () => {
   });
 
   const handleWarrantyClick = (booking) => {
+    if (!booking.warrantyToken) {
+      console.log('No warranty token for booking:', booking);
+      return;
+    }
     openWarrantyModal(booking);
   };
 
@@ -193,7 +198,7 @@ const BookingsDashboard = () => {
                 </div>
                 
                 <button
-                  onClick={() => handleWarrantyClick(booking.warrantyToken)}
+                  onClick={() => booking.warrantyToken ? handleWarrantyClick(booking) : null}
                   className={`w-full flex items-center justify-center space-x-2 px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
                     isWarrantyValid(booking.warrantyExpiry)
                       ? 'bg-blue-50 text-blue-700 hover:bg-blue-100 border border-blue-200'
