@@ -6,8 +6,8 @@ const { generateToken, rateLimit } = require('../middleware/auth');
 
 const router = express.Router();
 
-// Validation middleware
-const validateAuthInput = (req, res, next) => {
+// Validation middleware for registration
+const validateRegistrationInput = (req, res, next) => {
   const { email, password, firstName, lastName, phone } = req.body;
   const errors = [];
 
@@ -21,23 +21,49 @@ const validateAuthInput = (req, res, next) => {
     errors.push('Password must be at least 6 characters long');
   }
 
-  // Password strength validation
+  // Password strength validation (only for registration)
   if (password && !/(?=.*[a-z])(?=.*[A-Z])(?=.*\d)/.test(password)) {
     errors.push('Password must contain at least one uppercase letter, one lowercase letter, and one number');
   }
 
-  // Name validation (for signup)
-  if (firstName && firstName.trim().length < 2) {
+  // Name validation
+  if (!firstName || firstName.trim().length < 2) {
     errors.push('First name must be at least 2 characters long');
   }
 
-  if (lastName && lastName.trim().length < 2) {
+  if (!lastName || lastName.trim().length < 2) {
     errors.push('Last name must be at least 2 characters long');
   }
 
   // Phone validation (optional)
-  if (phone && !validator.isMobilePhone(phone)) {
-    errors.push('Valid phone number is required');
+  if (phone && !/^\+?[\d\s\-()]+$/.test(phone)) {
+    errors.push('Phone number is invalid');
+  }
+
+  if (errors.length > 0) {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      errors
+    });
+  }
+
+  next();
+};
+
+// Validation middleware for login (simpler validation)
+const validateLoginInput = (req, res, next) => {
+  const { email, password } = req.body;
+  const errors = [];
+
+  // Email validation
+  if (!email || !validator.isEmail(email)) {
+    errors.push('Valid email is required');
+  }
+
+  // Password validation (just check it's not empty for login)
+  if (!password || password.trim().length === 0) {
+    errors.push('Password is required');
   }
 
   if (errors.length > 0) {
@@ -52,7 +78,7 @@ const validateAuthInput = (req, res, next) => {
 };
 
 // POST /api/auth/register - User registration
-router.post('/register', rateLimit(5, 15 * 60 * 1000), validateAuthInput, async (req, res) => {
+router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
 
@@ -108,21 +134,29 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateAuthInput, async 
 });
 
 // POST /api/auth/login - User login
-router.post('/login', rateLimit(10, 15 * 60 * 1000), validateAuthInput, async (req, res) => {
+router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (req, res) => {
   try {
     const { email, password } = req.body;
+    
+    console.log('Login attempt:', { email, passwordLength: password?.length });
 
     // Find user by email
     const user = userUtils.findUserByEmail(email);
+    console.log('User found:', !!user, 'Email searched:', email);
+    
     if (!user) {
+      console.log('User not found for email:', email);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
+    console.log('User found:', user.id, 'Active:', user.isActive);
+
     // Check if user is active
     if (!user.isActive) {
+      console.log('User account deactivated:', user.id);
       return res.status(401).json({
         success: false,
         message: 'Account is deactivated. Please contact support.'
@@ -131,12 +165,17 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateAuthInput, async (r
 
     // Verify password
     const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password validation result:', isPasswordValid);
+    
     if (!isPasswordValid) {
+      console.log('Password validation failed for user:', user.id);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
+
+    console.log('Login successful for user:', user.id);
 
     // Generate token
     const token = generateToken(user);
