@@ -58,7 +58,7 @@ const TrackPage = () => {
     } finally {
       setIsLoading(false);
     }
-  }, [bookingId]);
+  }, [token, bookingId]);
 
   // Extract booking ID from URL query parameters
   useEffect(() => {

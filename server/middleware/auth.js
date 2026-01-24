@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { userUtils } = require('./dataManager');
+const { userUtils } = require('../utils/dataManager');
 
 // JWT Secret (should be in environment variables in production)
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
@@ -88,7 +88,7 @@ const requireRole = (roles) => {
   };
 };
 
-// Rate limiting for auth endpoints
+// Simple rate limiting for auth endpoints
 const rateLimiter = new Map();
 
 const rateLimit = (maxRequests = 5, windowMs = 15 * 60 * 1000) => {

@@ -59,7 +59,7 @@ const SignupPage = () => {
       errors.push('Passwords do not match');
     }
 
-    if (formData.phone && !/^\+?[\d\s\-\(\)]+$/.test(formData.phone)) {
+    if (formData.phone && !/^\+?[\d\s\-()]+$/.test(formData.phone)) {
       errors.push('Phone number is invalid');
     }
 

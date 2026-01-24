@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useReducer, useEffect } from 'react';
+import React, { createContext, useContext, useReducer, useEffect, useCallback } from 'react';
 
 // Initial state
 const initialState = {
@@ -101,7 +101,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   // Load user from token
-  const loadUser = async () => {
+  const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
     
     if (!token) {
@@ -136,7 +136,7 @@ export const AuthProvider = ({ children }) => {
       dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Network error' });
       setAuthToken(null);
     }
-  };
+  }, []);
 
   // Login function
   const login = async (email, password) => {
@@ -264,7 +264,7 @@ export const AuthProvider = ({ children }) => {
   // Load user on mount
   useEffect(() => {
     loadUser();
-  }, []);
+  }, [loadUser]);
 
   const value = {
     ...state,
