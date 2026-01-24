@@ -45,32 +45,47 @@ const userUtils = {
 
   // Create new user
   createUser(userData) {
-    const users = this.readUsers();
-    
-    // Check if user already exists
-    if (this.findUserByEmail(userData.email)) {
-      return { success: false, message: 'User already exists with this email' };
-    }
+    try {
+      if (!userData || typeof userData !== 'object') {
+        return { success: false, message: 'Invalid user data provided' };
+      }
 
-    const newUser = {
-      id: this.generateUserId(),
-      email: userData.email.toLowerCase(),
-      password: userData.password, // Should be hashed
-      firstName: userData.firstName,
-      lastName: userData.lastName,
-      phone: userData.phone || '',
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      isActive: true,
-      role: 'user'
-    };
+      const users = this.readUsers();
+      
+      // Check if user already exists
+      if (this.findUserByEmail(userData.email)) {
+        return { success: false, message: 'User already exists with this email' };
+      }
 
-    users.push(newUser);
-    
-    if (this.writeUsers(users)) {
-      return { success: true, user: { ...newUser, password: undefined } };
-    } else {
-      return { success: false, message: 'Failed to create user' };
+      // Validate user data
+      const validation = this.validateUserData(userData);
+      if (!validation.isValid) {
+        return { success: false, message: 'Validation failed', errors: validation.errors };
+      }
+
+      const newUser = {
+        id: this.generateUserId(),
+        email: userData.email.toLowerCase().trim(),
+        password: userData.password, // Should be hashed
+        firstName: userData.firstName?.trim() || '',
+        lastName: userData.lastName?.trim() || '',
+        phone: userData.phone?.trim() || '',
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        isActive: true,
+        role: userData.role || 'user'
+      };
+
+      users.push(newUser);
+      
+      if (this.writeUsers(users)) {
+        return { success: true, user: { ...newUser, password: undefined } };
+      } else {
+        return { success: false, message: 'Failed to save user data' };
+      }
+    } catch (error) {
+      console.error('Error creating user:', error);
+      return { success: false, message: 'Internal error while creating user' };
     }
   },
 
@@ -169,32 +184,60 @@ const bookingUtils = {
 
   // Create booking with user association
   createBooking(bookingData, userId) {
-    const bookings = this.readBookings();
-    
-    const newBooking = {
-      bookingId: this.generateBookingId(),
-      userId,
-      deviceType: bookingData.deviceType,
-      issue: bookingData.issue,
-      customIssueDescription: bookingData.issue === 'other' ? bookingData.customIssueDescription : undefined,
-      preferredTime: bookingData.preferredTime,
-      address: bookingData.address,
-      photo: bookingData.photo || null,
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      warrantyToken: this.generateWarrantyToken(),
-      warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      technician: 'John Smith',
-      cost: Math.floor(Math.random() * 200) + 50,
-      deviceModel: `${bookingData.deviceType} Model`
-    };
+    try {
+      if (!bookingData || typeof bookingData !== 'object') {
+        return { success: false, message: 'Invalid booking data provided' };
+      }
 
-    bookings.push(newBooking);
-    
-    if (this.writeBookings(bookings)) {
-      return { success: true, booking: newBooking };
-    } else {
-      return { success: false, message: 'Failed to create booking' };
+      if (!userId || typeof userId !== 'string') {
+        return { success: false, message: 'Valid user ID is required' };
+      }
+
+      // Verify user exists
+      const user = this.findUserById(userId);
+      if (!user) {
+        return { success: false, message: 'User not found' };
+      }
+
+      if (!user.isActive) {
+        return { success: false, message: 'User account is not active' };
+      }
+
+      const bookings = this.readBookings();
+      
+      const newBooking = {
+        bookingId: this.generateBookingId(),
+        userId,
+        deviceType: bookingData.deviceType?.trim() || '',
+        issue: bookingData.issue?.trim() || '',
+        customIssueDescription: bookingData.issue === 'other' ? (bookingData.customIssueDescription?.trim() || '') : undefined,
+        preferredTime: bookingData.preferredTime?.trim() || '',
+        address: bookingData.address?.trim() || '',
+        photo: bookingData.photo || null,
+        createdAt: new Date().toISOString(),
+        status: 'pending',
+        warrantyToken: this.generateWarrantyToken(),
+        warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+        technician: 'John Smith',
+        cost: Math.floor(Math.random() * 200) + 50,
+        deviceModel: `${bookingData.deviceType || 'unknown'} Model`
+      };
+
+      // Validate required fields
+      if (!newBooking.deviceType || !newBooking.issue || !newBooking.preferredTime || !newBooking.address) {
+        return { success: false, message: 'Missing required booking fields' };
+      }
+
+      bookings.push(newBooking);
+      
+      if (this.writeBookings(bookings)) {
+        return { success: true, booking: newBooking };
+      } else {
+        return { success: false, message: 'Failed to save booking data' };
+      }
+    } catch (error) {
+      console.error('Error creating booking:', error);
+      return { success: false, message: 'Internal error while creating booking' };
     }
   },
 

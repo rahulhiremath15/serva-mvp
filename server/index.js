@@ -36,6 +36,16 @@ app.use((req, res, next) => {
   next();
 });
 
+// Test route to verify server is working
+app.get('/api/test', (req, res) => {
+  res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
+});
+
+// Health check endpoint
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', version: '2.0.0', auth: 'enabled' });
+});
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
@@ -51,10 +61,10 @@ const storage = multer.diskStorage({
   }
 });
 
-const upload = multer({ 
-  storage: storage,
+const upload = multer({
+  storage,
   limits: {
-    fileSize: 10 * 1024 * 1024 // 10MB limit
+    fileSize: 10 * 1024 * 1024, // 10MB limit
   },
   fileFilter: (req, file, cb) => {
     // Accept images only
@@ -63,48 +73,6 @@ const upload = multer({
     } else {
       cb(new Error('Only image files are allowed'), false);
     }
-  }
-});
-
-// Health check endpoint
-app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '2.0.0', auth: 'enabled' });
-});
-
-// Data cleanup endpoint (admin only - remove old test data)
-app.post('/api/admin/cleanup-data', authenticateToken, (req, res) => {
-  try {
-    // Only allow admin users (you can enhance this with role-based access)
-    if (req.user.role !== 'admin') {
-      return res.status(403).json({
-        success: false,
-        message: 'Admin access required'
-      });
-    }
-
-    // Clear old bookings without user association
-    const bookings = bookingUtils.readBookings();
-    const userBookings = bookings.filter(booking => booking.userId);
-    const orphanedBookings = bookings.filter(booking => !booking.userId);
-
-    // Save only user-associated bookings
-    bookingUtils.writeBookings(userBookings);
-
-    res.status(200).json({
-      success: true,
-      message: 'Data cleanup completed',
-      data: {
-        removedBookings: orphanedBookings.length,
-        remainingBookings: userBookings.length
-      }
-    });
-
-  } catch (error) {
-    console.error('Cleanup error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Failed to cleanup data'
-    });
   }
 });
 
@@ -118,30 +86,40 @@ function generateTimeline(booking) {
   if (hoursSinceCreation < 1) {
     return [
       { step: 1, title: 'Booking Confirmed', time: booking.createdAt, completed: true },
-      { step: 2, title: 'Technician Assigned', time: null, completed: false },
-      { step: 3, title: 'Device Picked Up', time: null, completed: false },
-      { step: 4, title: 'Repair in Progress', time: null, completed: false },
-      { step: 5, title: 'Repair Completed', time: null, completed: false }
+      { step: 2, title: 'Diagnostic Assessment', time: new Date(createdAt.getTime() + 30 * 60 * 1000).toISOString(), completed: false },
+      { step: 3, title: 'Device Picked Up', time: new Date(createdAt.getTime() + 2 * 60 * 60 * 1000).toISOString(), completed: false },
+      { step: 4, title: 'Repair in Progress', time: new Date(createdAt.getTime() + 4 * 60 * 60 * 1000).toISOString(), completed: false },
+      { step: 5, title: 'Repair Completed', time: new Date(createdAt.getTime() + 6 * 60 * 60 * 1000).toISOString(), completed: false }
     ];
   } else if (hoursSinceCreation < 4) {
-    const assignedTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    const diagnosticTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
     const pickedUpTime = new Date(createdAt.getTime() + 2 * 60 * 60 * 1000);
     return [
       { step: 1, title: 'Booking Confirmed', time: booking.createdAt, completed: true },
-      { step: 2, title: 'Technician Assigned', time: assignedTime.toISOString(), completed: true },
+      { step: 2, title: 'Diagnostic Assessment', time: diagnosticTime.toISOString(), completed: true },
+      { step: 3, title: 'Device Picked Up', time: pickedUpTime.toISOString(), completed: hoursSinceCreation >= 2 },
+      { step: 4, title: 'Repair in Progress', time: new Date(createdAt.getTime() + 4 * 60 * 60 * 1000).toISOString(), completed: false },
+      { step: 5, title: 'Repair Completed', time: new Date(createdAt.getTime() + 6 * 60 * 60 * 1000).toISOString(), completed: false }
+    ];
+  } else if (hoursSinceCreation < 8) {
+    const diagnosticTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    const pickedUpTime = new Date(createdAt.getTime() + 2 * 60 * 60 * 1000);
+    const inProgressTime = new Date(createdAt.getTime() + 4 * 60 * 60 * 1000);
+    return [
+      { step: 1, title: 'Booking Confirmed', time: booking.createdAt, completed: true },
+      { step: 2, title: 'Diagnostic Assessment', time: diagnosticTime.toISOString(), completed: true },
       { step: 3, title: 'Device Picked Up', time: pickedUpTime.toISOString(), completed: true },
-      { step: 4, title: 'Repair in Progress', time: null, completed: false },
-      { step: 5, title: 'Repair Completed', time: null, completed: false }
+      { step: 4, title: 'Repair in Progress', time: inProgressTime.toISOString(), completed: true },
+      { step: 5, title: 'Repair Completed', time: new Date(createdAt.getTime() + 6 * 60 * 60 * 1000).toISOString(), completed: false }
     ];
   } else {
-    const assignedTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
+    const diagnosticTime = new Date(createdAt.getTime() + 30 * 60 * 1000);
     const pickedUpTime = new Date(createdAt.getTime() + 2 * 60 * 60 * 1000);
     const inProgressTime = new Date(createdAt.getTime() + 4 * 60 * 60 * 1000);
     const completedTime = new Date(createdAt.getTime() + 6 * 60 * 60 * 1000);
-    
     return [
       { step: 1, title: 'Booking Confirmed', time: booking.createdAt, completed: true },
-      { step: 2, title: 'Technician Assigned', time: assignedTime.toISOString(), completed: true },
+      { step: 2, title: 'Diagnostic Assessment', time: diagnosticTime.toISOString(), completed: true },
       { step: 3, title: 'Device Picked Up', time: pickedUpTime.toISOString(), completed: true },
       { step: 4, title: 'Repair in Progress', time: inProgressTime.toISOString(), completed: true },
       { step: 5, title: 'Repair Completed', time: completedTime.toISOString(), completed: true }
@@ -149,19 +127,24 @@ function generateTimeline(booking) {
   }
 }
 
-// Serve uploaded files
-app.use('/uploads', express.static('uploads'));
-
 // POST route for booking submissions (protected)
 app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, res) => {
   try {
+    console.log('POST /api/v1/bookings - Request received');
+    console.log('User authenticated:', !!req.user);
+    console.log('Request body:', req.body);
+    console.log('Uploaded file:', req.file);
+    
     const { deviceType, issue, preferredTime, address } = req.body;
     const customIssueDescription = req.body.customIssueDescription;
     const photoFile = req.file;
     const userId = req.user.id; // Get user ID from authenticated token
 
+    console.log('Extracted data:', { deviceType, issue, preferredTime, address, userId });
+
     // Validate required fields
     if (!deviceType || !issue || !preferredTime || !address) {
+      console.log('Validation failed - missing fields');
       return res.status(400).json({
         success: false,
         message: 'Missing required fields'
@@ -170,12 +153,14 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
 
     // Validate custom issue description if "other" is selected
     if (issue === 'other' && !customIssueDescription) {
+      console.log('Validation failed - missing custom issue description');
       return res.status(400).json({
         success: false,
         message: 'Custom issue description is required when "Other" is selected'
       });
     }
 
+    console.log('Creating booking...');
     // Create booking with user association
     const result = bookingUtils.createBooking({
       deviceType,
@@ -191,13 +176,17 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
       } : null
     }, userId);
 
+    console.log('Booking creation result:', result);
+
     if (!result.success) {
+      console.log('Booking creation failed:', result.message);
       return res.status(500).json({
         success: false,
         message: result.message || 'Failed to create booking'
       });
     }
 
+    console.log('Booking created successfully');
     // Return success response
     res.status(200).json({
       success: true,
@@ -224,8 +213,14 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
 // GET route to retrieve user's bookings (protected)
 app.get('/api/v1/bookings', authenticateToken, (req, res) => {
   try {
+    console.log('GET /api/v1/bookings - Request received');
+    console.log('User authenticated:', !!req.user);
+    
     const userId = req.user.id;
+    console.log('Fetching bookings for user:', userId);
+    
     const bookings = bookingUtils.getBookingsByUserId(userId);
+    console.log('Found bookings:', bookings.length);
     
     // Sort bookings by date (newest first)
     const sortedBookings = bookings.sort((a, b) => 
@@ -248,14 +243,20 @@ app.get('/api/v1/bookings', authenticateToken, (req, res) => {
 // GET route to retrieve specific booking by ID (protected)
 app.get('/api/v1/bookings/:id', authenticateToken, (req, res) => {
   try {
+    console.log('GET /api/v1/bookings/:id - Request received');
+    console.log('User authenticated:', !!req.user);
+    
     const { id } = req.params;
     const userId = req.user.id;
+    console.log('Fetching booking:', id, 'for user:', userId);
+    
     const bookings = bookingUtils.readBookings();
     
     // Find booking that belongs to the authenticated user
     const booking = bookings.find(b => b.bookingId === id.toUpperCase() && b.userId === userId);
     
     if (!booking) {
+      console.log('Booking not found or access denied');
       return res.status(404).json({
         success: false,
         message: 'Booking not found or access denied'
@@ -288,13 +289,41 @@ app.get('/api/v1/bookings/:id', authenticateToken, (req, res) => {
   }
 });
 
+// Serve uploaded files
+app.use('/uploads', express.static('uploads'));
+
+// 404 handler for undefined routes
+app.use('*', (req, res) => {
+  console.log(`404 - Route not found: ${req.method} ${req.path}`);
+  res.status(404).json({
+    success: false,
+    message: 'Route not found',
+    path: req.path,
+    method: req.method
+  });
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
+  console.error('Error occurred:', error);
+  
   if (error instanceof multer.MulterError) {
     if (error.code === 'LIMIT_FILE_SIZE') {
       return res.status(400).json({
         success: false,
         message: 'File size too large. Maximum size is 10MB'
+      });
+    }
+    if (error.code === 'LIMIT_FILE_COUNT') {
+      return res.status(400).json({
+        success: false,
+        message: 'Too many files uploaded'
+      });
+    }
+    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
+      return res.status(400).json({
+        success: false,
+        message: 'Unexpected file field'
       });
     }
   }
@@ -306,10 +335,44 @@ app.use((error, req, res, next) => {
     });
   }
 
+  // Handle JSON parsing errors
+  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
+    return res.status(400).json({
+      success: false,
+      message: 'Invalid JSON in request body'
+    });
+  }
+
+  // Handle JWT errors specifically
+  if (error.name === 'JsonWebTokenError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Invalid token'
+    });
+  }
+  
+  if (error.name === 'TokenExpiredError') {
+    return res.status(401).json({
+      success: false,
+      message: 'Token expired'
+    });
+  }
+
+  // Handle validation errors
+  if (error.name === 'ValidationError') {
+    return res.status(400).json({
+      success: false,
+      message: 'Validation failed',
+      details: error.message
+    });
+  }
+
+  // Default error handler
   console.error('Unhandled error:', error);
   res.status(500).json({
     success: false,
-    message: 'Internal server error'
+    message: 'Internal server error',
+    ...(process.env.NODE_ENV === 'development' && { error: error.message })
   });
 });
 
@@ -318,4 +381,5 @@ app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Bookings API available at http://localhost:${PORT}/api/v1/bookings`);
   console.log('Health check available at /health');
+  console.log('Test endpoint available at /api/test');
 });

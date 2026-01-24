@@ -143,12 +143,21 @@ export const AuthProvider = ({ children }) => {
     try {
       dispatch({ type: AUTH_ACTIONS.LOGIN_START });
 
+      // Validate inputs
+      if (!email || !password) {
+        dispatch({ 
+          type: AUTH_ACTIONS.LOGIN_FAILURE, 
+          payload: 'Email and password are required' 
+        });
+        return { success: false, error: 'Email and password are required' };
+      }
+
       const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json'
         },
-        body: JSON.stringify({ email, password })
+        body: JSON.stringify({ email: email.trim().toLowerCase(), password })
       });
 
       const data = await response.json();
@@ -161,12 +170,26 @@ export const AuthProvider = ({ children }) => {
         });
         return { success: true };
       } else {
-        dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: data.message });
-        return { success: false, error: data.message };
+        dispatch({ 
+          type: AUTH_ACTIONS.LOGIN_FAILURE, 
+          payload: data.message || 'Login failed' 
+        });
+        return { success: false, error: data.message || 'Login failed' };
       }
     } catch (error) {
-      const errorMessage = 'Network error. Please try again.';
-      dispatch({ type: AUTH_ACTIONS.LOGIN_FAILURE, payload: errorMessage });
+      console.error('Login error:', error);
+      let errorMessage = 'Network error. Please try again.';
+      
+      if (error.name === 'TypeError' && error.message.includes('fetch')) {
+        errorMessage = 'Network connection failed. Please check your internet.';
+      } else if (error.name === 'AbortError') {
+        errorMessage = 'Request timed out. Please try again.';
+      }
+      
+      dispatch({ 
+        type: AUTH_ACTIONS.LOGIN_FAILURE, 
+        payload: errorMessage 
+      });
       return { success: false, error: errorMessage };
     }
   };
