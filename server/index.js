@@ -318,12 +318,5 @@ app.use((error, req, res, next) => {
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
   console.log(`Bookings API available at http://localhost:${PORT}/api/v1/bookings`);
-  
-  // Log all registered routes for debugging
-  console.log('Registered routes:');
-  app._router.stack.forEach((middleware) => {
-    if (middleware.route) {
-      console.log(`  ${Object.keys(middleware.route.methods).join(', ').toUpperCase()} ${middleware.route.path}`);
-    }
-  });
+  console.log('Health check available at /health');
 });
