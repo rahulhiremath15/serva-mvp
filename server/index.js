@@ -134,19 +134,27 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
   try {
     console.log('POST /api/v1/bookings - Request received');
     console.log('User authenticated:', !!req.user);
+    console.log('Request body keys:', Object.keys(req.body));
     console.log('Request body:', req.body);
     console.log('Uploaded file:', req.file);
     
-    const { deviceType, issue, preferredTime, address } = req.body;
-    const customIssueDescription = req.body.customIssueDescription;
-    const photoFile = req.file;
-    const userId = req.user.id; // Get user ID from authenticated token
+    const userId = req.user.id;
+    console.log('User ID:', userId);
 
-    console.log('Extracted data:', { deviceType, issue, preferredTime, address, userId });
+    // Extract data from FormData
+    const { deviceType, issue, customIssueDescription, preferredTime, address } = req.body;
+    
+    console.log('Extracted data:', { deviceType, issue, customIssueDescription, preferredTime, address });
 
     // Validate required fields
     if (!deviceType || !issue || !preferredTime || !address) {
-      console.log('Validation failed - missing fields');
+      console.log('Validation failed - missing required fields');
+      console.log('Missing fields:', {
+        deviceType: !deviceType,
+        issue: !issue, 
+        preferredTime: !preferredTime,
+        address: !address
+      });
       return res.status(400).json({
         success: false,
         message: 'Missing required fields'
@@ -170,11 +178,11 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
       customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
       preferredTime,
       address,
-      photo: photoFile ? {
-        filename: photoFile.filename,
-        originalName: photoFile.originalname,
-        path: photoFile.path,
-        size: photoFile.size
+      photo: req.file ? {
+        filename: req.file.filename,
+        originalName: req.file.originalname,
+        path: req.file.path,
+        size: req.file.size
       } : null
     }, userId);
 
