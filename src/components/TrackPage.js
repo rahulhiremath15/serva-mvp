@@ -9,7 +9,8 @@ const TrackPage = () => {
   const [error, setError] = useState('');
 
   const handleTrack = useCallback(async (id = null) => {
-    const trackingId = (id || bookingId).trim().toUpperCase();
+    const rawId = id || bookingId;
+    const trackingId = rawId ? rawId.toString().trim().toUpperCase() : '';
     
     if (!trackingId) {
       setError('Please enter a booking ID');
