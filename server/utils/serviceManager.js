@@ -3,26 +3,34 @@ const path = require('path');
 
 class ServiceUtils {
   constructor() {
-    this.servicesFile = path.join(__dirname, '../data/services.json');
-    this.pricingFile = path.join(__dirname, '../data/pricing.json');
+    this.dataDir = path.join(__dirname, '../data');
+    this.servicesFile = path.join(this.dataDir, 'services.json');
+    this.pricingFile = path.join(this.dataDir, 'pricing.json');
     this.ensureDataFiles();
   }
 
   ensureDataFiles() {
-    // Create data directory if it doesn't exist
-    const dataDir = path.dirname(this.servicesFile);
-    if (!fs.existsSync(dataDir)) {
-      fs.mkdirSync(dataDir, { recursive: true });
-    }
+    try {
+      // Create data directory if it doesn't exist
+      if (!fs.existsSync(this.dataDir)) {
+        fs.mkdirSync(this.dataDir, { recursive: true });
+        console.log('Created data directory:', this.dataDir);
+      }
 
-    // Initialize services file if it doesn't exist
-    if (!fs.existsSync(this.servicesFile)) {
-      this.initializeServices();
-    }
+      // Initialize services file if it doesn't exist
+      if (!fs.existsSync(this.servicesFile)) {
+        console.log('Initializing services file...');
+        this.initializeServices();
+      }
 
-    // Initialize pricing file if it doesn't exist
-    if (!fs.existsSync(this.pricingFile)) {
-      this.initializePricing();
+      // Initialize pricing file if it doesn't exist
+      if (!fs.existsSync(this.pricingFile)) {
+        console.log('Initializing pricing file...');
+        this.initializePricing();
+      }
+    } catch (error) {
+      console.error('Error ensuring data files:', error);
+      // Don't throw error, continue with defaults
     }
   }
 
@@ -394,6 +402,10 @@ class ServiceUtils {
 
   readServices() {
     try {
+      if (!fs.existsSync(this.servicesFile)) {
+        console.log('Services file not found, returning defaults');
+        return { categories: [] };
+      }
       return JSON.parse(fs.readFileSync(this.servicesFile, 'utf8'));
     } catch (error) {
       console.error('Error reading services:', error);
@@ -403,6 +415,10 @@ class ServiceUtils {
 
   readPricing() {
     try {
+      if (!fs.existsSync(this.pricingFile)) {
+        console.log('Pricing file not found, returning defaults');
+        return { services: {}, baseCharges: {}, additionalCharges: {} };
+      }
       return JSON.parse(fs.readFileSync(this.pricingFile, 'utf8'));
     } catch (error) {
       console.error('Error reading pricing:', error);
