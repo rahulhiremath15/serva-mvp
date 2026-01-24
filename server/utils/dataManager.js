@@ -1,5 +1,6 @@
 const fs = require('fs');
 const path = require('path');
+const validator = require('validator');
 
 const USERS_FILE = path.join(__dirname, 'users.json');
 const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');

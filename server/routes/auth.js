@@ -81,9 +81,13 @@ const validateLoginInput = (req, res, next) => {
 router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
+    
+    console.log('Registration request received:', { email, firstName, lastName, phone: phone || 'none' });
 
     // Check if user already exists
     const existingUser = userUtils.findUserByEmail(email);
+    console.log('Existing user check:', !!existingUser);
+    
     if (existingUser) {
       return res.status(409).json({
         success: false,
@@ -94,6 +98,7 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
     // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
+    console.log('Password hashed successfully');
 
     // Create user
     const result = userUtils.createUser({
@@ -103,8 +108,11 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
       lastName: lastName.trim(),
       phone: phone ? phone.trim() : ''
     });
+    
+    console.log('User creation result:', result);
 
     if (!result.success) {
+      console.error('User creation failed:', result.message);
       return res.status(500).json({
         success: false,
         message: result.message || 'Failed to create user'
@@ -113,6 +121,7 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
 
     // Generate token
     const token = generateToken(result.user);
+    console.log('Token generated successfully');
 
     // Return success response
     res.status(201).json({
