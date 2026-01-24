@@ -2,7 +2,7 @@ const express = require('express');
 const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const { userUtils } = require('../utils/dataManager');
-const { generateToken, rateLimit } = require('../middleware/auth');
+const { generateToken, rateLimit, authenticateToken } = require('../middleware/auth');
 
 const router = express.Router();
 
