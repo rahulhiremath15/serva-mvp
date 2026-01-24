@@ -79,6 +79,13 @@ const SuccessPage = () => {
           </Link>
           
           <Link
+            to="/bookings"
+            className="w-full block px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-medium"
+          >
+            View My Bookings
+          </Link>
+          
+          <Link
             to="/"
             className="w-full block px-6 py-3 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
           >
