@@ -186,25 +186,38 @@ const bookingUtils = {
   // Create booking with user association
   createBooking(bookingData, userId) {
     try {
+      console.log('createBooking called with:', { bookingData, userId });
+      
       if (!bookingData || typeof bookingData !== 'object') {
+        console.log('Invalid booking data provided');
         return { success: false, message: 'Invalid booking data provided' };
       }
 
       if (!userId || typeof userId !== 'string') {
+        console.log('Invalid user ID:', userId);
         return { success: false, message: 'Valid user ID is required' };
       }
 
       // Verify user exists
+      console.log('Looking for user with ID:', userId);
       const user = this.findUserById(userId);
+      console.log('User found:', !!user);
+      
       if (!user) {
+        console.log('User not found for ID:', userId);
         return { success: false, message: 'User not found' };
       }
 
+      console.log('User data:', { id: user.id, email: user.email, isActive: user.isActive });
+
       if (!user.isActive) {
+        console.log('User account is not active');
         return { success: false, message: 'User account is not active' };
       }
 
+      console.log('Reading existing bookings...');
       const bookings = this.readBookings();
+      console.log('Current bookings count:', bookings.length);
       
       const newBooking = {
         bookingId: this.generateBookingId(),
@@ -224,20 +237,32 @@ const bookingUtils = {
         deviceModel: `${bookingData.deviceType || 'unknown'} Model`
       };
 
+      console.log('New booking created:', newBooking);
+
       // Validate required fields
       if (!newBooking.deviceType || !newBooking.issue || !newBooking.preferredTime || !newBooking.address) {
+        console.log('Missing required fields:', {
+          deviceType: !newBooking.deviceType,
+          issue: !newBooking.issue,
+          preferredTime: !newBooking.preferredTime,
+          address: !newBooking.address
+        });
         return { success: false, message: 'Missing required booking fields' };
       }
 
+      console.log('Adding booking to array...');
       bookings.push(newBooking);
       
+      console.log('Writing bookings to file...');
       if (this.writeBookings(bookings)) {
+        console.log('Booking saved successfully');
         return { success: true, booking: newBooking };
       } else {
+        console.log('Failed to save booking data');
         return { success: false, message: 'Failed to save booking data' };
       }
     } catch (error) {
-      console.error('Error creating booking:', error);
+      console.error('Error in createBooking:', error);
       return { success: false, message: 'Internal error while creating booking' };
     }
   },
