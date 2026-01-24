@@ -9,9 +9,9 @@ const TrackPage = () => {
   const [error, setError] = useState('');
 
   const handleTrack = useCallback(async (id = null) => {
-    const trackingId = id || bookingId;
+    const trackingId = (id || bookingId).trim().toUpperCase();
     
-    if (!trackingId.trim()) {
+    if (!trackingId) {
       setError('Please enter a booking ID');
       return;
     }
@@ -165,18 +165,18 @@ const TrackPage = () => {
 
             {/* Device Info */}
             <div className="p-6 border-b">
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-700 mb-1">Issue</div>
-                  <div className="text-gray-900">{trackingResult.issue}</div>
+                  <div className="text-gray-900 break-words">{trackingResult.issue}</div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-700 mb-1">Technician</div>
-                  <div className="text-gray-900">{trackingResult.technician}</div>
+                  <div className="text-gray-900 break-words">{trackingResult.technician}</div>
                 </div>
-                <div>
+                <div className="min-w-0">
                   <div className="text-sm font-medium text-gray-700 mb-1">Est. Completion</div>
-                  <div className="text-gray-900">{formatTime(trackingResult.estimatedCompletion)}</div>
+                  <div className="text-gray-900 break-words">{formatTime(trackingResult.estimatedCompletion)}</div>
                 </div>
               </div>
             </div>
@@ -186,7 +186,7 @@ const TrackPage = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Repair Timeline</h3>
               <div className="space-y-4">
                 {trackingResult.timeline.map((item, index) => (
-                  <div key={item.step} className="flex items-start space-x-4">
+                  <div key={item.step} className="flex items-start space-x-3 sm:space-x-4">
                     <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
                       item.completed 
                         ? 'bg-green-100 text-green-600' 
@@ -200,13 +200,13 @@ const TrackPage = () => {
                         <span className="text-xs font-medium">{item.step}</span>
                       )}
                     </div>
-                    <div className="flex-1">
-                      <div className={`font-medium ${
+                    <div className="flex-1 min-w-0">
+                      <div className={`font-medium break-words ${
                         item.completed ? 'text-gray-900' : 'text-gray-500'
                       }`}>
                         {item.title}
                       </div>
-                      <div className="text-sm text-gray-500">{formatTime(item.time)}</div>
+                      <div className="text-sm text-gray-500 mt-1">{formatTime(item.time)}</div>
                     </div>
                   </div>
                 ))}
