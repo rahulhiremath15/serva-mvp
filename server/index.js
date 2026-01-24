@@ -65,6 +65,14 @@ function generateBookingId() {
   return `BK${timestamp}${random}`.toUpperCase();
 }
 
+// Helper function to generate warranty token
+function generateWarrantyToken(bookingId) {
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256');
+  hash.update(bookingId + new Date().toISOString());
+  return hash.digest('hex').toUpperCase();
+}
+
 // Helper function to read bookings from file
 function readBookings() {
   try {
@@ -132,14 +140,6 @@ app.post('/api/v1/bookings', upload.single('photo'), (req, res) => {
         message: 'Custom issue description is required when "Other" is selected'
       });
     }
-
-    // Generate warranty token function
-function generateWarrantyToken(bookingId) {
-  const crypto = require('crypto');
-  const hash = crypto.createHash('sha256');
-  hash.update(bookingId + new Date().toISOString());
-  return hash.digest('hex').toUpperCase();
-}
 
 // Create booking object
     const bookingId = generateBookingId();
