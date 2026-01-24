@@ -22,7 +22,7 @@ const TrackPage = () => {
 
     try {
       // Call real API instead of using dummy data
-      const apiUrl = process.env.REACT_APP_API_URL || 'http://localhost:5000';
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
       const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`);
       
       if (!response.ok) {
