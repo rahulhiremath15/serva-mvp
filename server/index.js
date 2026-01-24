@@ -133,9 +133,18 @@ app.post('/api/v1/bookings', upload.single('photo'), (req, res) => {
       });
     }
 
-    // Create booking object
+    // Generate warranty token function
+function generateWarrantyToken(bookingId) {
+  const crypto = require('crypto');
+  const hash = crypto.createHash('sha256');
+  hash.update(bookingId + new Date().toISOString());
+  return hash.digest('hex').toUpperCase();
+}
+
+// Create booking object
+    const bookingId = generateBookingId();
     const booking = {
-      bookingId: generateBookingId(),
+      bookingId,
       deviceType,
       issue,
       customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
@@ -148,7 +157,12 @@ app.post('/api/v1/bookings', upload.single('photo'), (req, res) => {
         size: photoFile.size
       } : null,
       createdAt: new Date().toISOString(),
-      status: 'pending'
+      status: 'pending',
+      warrantyToken: generateWarrantyToken(bookingId),
+      warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year warranty
+      technician: 'John Smith',
+      cost: Math.floor(Math.random() * 200) + 50, // Random cost between $50-250
+      deviceModel: `${deviceType} Model`
     };
 
     // Read existing bookings
@@ -192,9 +206,21 @@ app.post('/api/v1/bookings', upload.single('photo'), (req, res) => {
 app.get('/api/v1/bookings', (req, res) => {
   try {
     const bookings = readBookings();
+    
+    // Add missing fields to existing bookings for compatibility
+    const updatedBookings = bookings.map(booking => ({
+      ...booking,
+      warrantyToken: booking.warrantyToken || generateWarrantyToken(booking.bookingId),
+      warrantyExpiry: booking.warrantyExpiry || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
+      technician: booking.technician || 'John Smith',
+      cost: booking.cost || 150,
+      deviceModel: booking.deviceModel || `${booking.deviceType} Model`,
+      date: booking.date || booking.createdAt
+    }));
+    
     res.status(200).json({
       success: true,
-      bookings: bookings
+      bookings: updatedBookings
     });
   } catch (error) {
     console.error('Error retrieving bookings:', error);
