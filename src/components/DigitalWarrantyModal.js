@@ -31,14 +31,16 @@ const DigitalWarrantyModal = ({ booking, isOpen, onClose }) => {
         <div className="p-6">
           {/* Certificate Details */}
           <div className="mb-6">
-            <div className="grid grid-cols-2 gap-4 mb-4">
+            <div className="grid grid-cols-1 gap-4 mb-4">
               <div>
                 <div className="text-sm text-gray-600">Certificate ID</div>
-                <div className="font-mono font-semibold text-lg">{booking.warrantyToken}</div>
+                <div className="font-mono font-semibold text-lg break-all">
+                  {booking.warrantyToken ? `${booking.warrantyToken.slice(0, 8)}...${booking.warrantyToken.slice(-4)}` : 'N/A'}
+                </div>
               </div>
               <div>
                 <div className="text-sm text-gray-600">Issue Date</div>
-                <div className="font-semibold">{new Date(booking.date).toLocaleDateString()}</div>
+                <div className="font-semibold">{new Date(booking.date || booking.createdAt).toLocaleDateString()}</div>
               </div>
             </div>
             
