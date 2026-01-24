@@ -228,19 +228,26 @@ router.post('/logout', (req, res) => {
 });
 
 // GET /api/auth/me - Get current user info
-router.get('/me', (req, res) => {
-  // This route should be protected by authenticateToken middleware
+router.get('/me', authenticateToken, (req, res) => {
   // The middleware will add req.user
   res.status(200).json({
     success: true,
     data: {
-      user: req.user
+      user: {
+        id: req.user.id,
+        email: req.user.email,
+        firstName: req.user.firstName,
+        lastName: req.user.lastName,
+        phone: req.user.phone,
+        role: req.user.role,
+        createdAt: req.user.createdAt
+      }
     }
   });
 });
 
 // PUT /api/auth/profile - Update user profile
-router.put('/profile', (req, res) => {
+router.put('/profile', authenticateToken, (req, res) => {
   try {
     const { firstName, lastName, phone } = req.body;
     const userId = req.user.id;
