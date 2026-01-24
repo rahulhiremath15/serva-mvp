@@ -1,11 +1,12 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../context/AuthContext';
 import DigitalWarrantyModal from './DigitalWarrantyModal';
 
 const BookingsDashboard = () => {
+  const { token } = useAuth();
   const [bookings, setBookings] = useState([]);
   const [selectedBooking, setSelectedBooking] = useState(null);
   const [isModalOpen, setIsModalOpen] = useState(false);
-
   const [filter, setFilter] = useState('all');
 
   // Fetch real bookings data from server
@@ -14,18 +15,18 @@ const BookingsDashboard = () => {
       try {
         const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
         console.log('Fetching bookings from:', apiUrl);
-        const response = await fetch(`${apiUrl}/api/v1/bookings`);
+        const response = await fetch(`${apiUrl}/api/v1/bookings`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
         console.log('Response status:', response.status);
         
         if (response.ok) {
           const result = await response.json();
           console.log('Bookings data:', result);
           if (result.success) {
-            // Sort bookings by date (newest first)
-            const sortedBookings = result.bookings.sort((a, b) => 
-              new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
-            );
-            setBookings(sortedBookings);
+            setBookings(result.bookings);
           }
         } else {
           console.error('API response not ok:', response.status);
@@ -35,8 +36,10 @@ const BookingsDashboard = () => {
       }
     };
 
-    fetchBookings();
-  }, []);
+    if (token) {
+      fetchBookings();
+    }
+  }, [token]);
 
   const openWarrantyModal = (booking) => {
     setSelectedBooking(booking);

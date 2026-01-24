@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const BookingWizard = () => {
   const navigate = useNavigate();
+  const { token } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [bookingData, setBookingData] = useState({
     deviceType: '',
@@ -111,6 +113,9 @@ const BookingWizard = () => {
 
       const response = await fetch(`${apiUrl}/api/v1/bookings`, {
         method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`
+        },
         body: formData,
       });
 

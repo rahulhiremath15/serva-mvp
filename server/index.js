@@ -4,6 +4,11 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
+// Import authentication middleware and routes
+const { authenticateToken, optionalAuth } = require('./middleware/auth');
+const authRoutes = require('./routes/auth');
+const { bookingUtils } = require('./utils/dataManager');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
 
@@ -20,6 +25,9 @@ app.use(cors({
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json());
+
+// Routes
+app.use('/api/auth', authRoutes);
 
 // Request logging middleware
 app.use((req, res, next) => {
@@ -58,215 +66,44 @@ const upload = multer({
   }
 });
 
-// Helper function to generate unique booking ID
-function generateBookingId() {
-  const timestamp = Date.now().toString(36);
-  const random = Math.random().toString(36).substr(2, 5);
-  return `BK${timestamp}${random}`.toUpperCase();
-}
-
-// Helper function to generate warranty token
-function generateWarrantyToken(bookingId) {
-  const crypto = require('crypto');
-  const hash = crypto.createHash('sha256');
-  hash.update(bookingId + new Date().toISOString());
-  return hash.digest('hex').toUpperCase();
-}
-
-// Helper function to read bookings from file
-function readBookings() {
-  try {
-    if (fs.existsSync('bookings.json')) {
-      const data = fs.readFileSync('bookings.json', 'utf8');
-      return JSON.parse(data);
-    }
-    return [];
-  } catch (error) {
-    console.error('Error reading bookings:', error);
-    return [];
-  }
-}
-
-// Helper function to write bookings to file
-function writeBookings(bookings) {
-  try {
-    fs.writeFileSync('bookings.json', JSON.stringify(bookings, null, 2));
-    return true;
-  } catch (error) {
-    console.error('Error writing bookings:', error);
-    return false;
-  }
-}
-
 // Health check endpoint
 app.get('/health', (req, res) => {
-  res.json({ status: 'ok', version: '1.0.1' });
+  res.json({ status: 'ok', version: '2.0.0', auth: 'enabled' });
 });
 
-// Unique deployment verification endpoint
-app.get('/deploy-test', (req, res) => {
-  res.json({ 
-    message: 'DEPLOYMENT SUCCESSFUL!', 
-    timestamp: new Date().toISOString(),
-    commit: 'latest-code-deployed',
-    random: Math.random().toString(36).substr(2, 9)
-  });
-});
-
-// Test route to verify server is working
-app.get('/api/test', (req, res) => {
-  res.json({ message: 'Server is working!', timestamp: new Date().toISOString() });
-});
-
-// POST route for booking submissions
-app.post('/api/v1/bookings', upload.single('photo'), (req, res) => {
+// Data cleanup endpoint (admin only - remove old test data)
+app.post('/api/admin/cleanup-data', authenticateToken, (req, res) => {
   try {
-    const { deviceType, issue, preferredTime, address } = req.body;
-    const customIssueDescription = req.body.customIssueDescription;
-    const photoFile = req.file;
-
-    // Validate required fields
-    if (!deviceType || !issue || !preferredTime || !address) {
-      return res.status(400).json({
+    // Only allow admin users (you can enhance this with role-based access)
+    if (req.user.role !== 'admin') {
+      return res.status(403).json({
         success: false,
-        message: 'Missing required fields'
+        message: 'Admin access required'
       });
     }
 
-    // Validate custom issue description if "other" is selected
-    if (issue === 'other' && !customIssueDescription) {
-      return res.status(400).json({
-        success: false,
-        message: 'Custom issue description is required when "Other" is selected'
-      });
-    }
+    // Clear old bookings without user association
+    const bookings = bookingUtils.readBookings();
+    const userBookings = bookings.filter(booking => booking.userId);
+    const orphanedBookings = bookings.filter(booking => !booking.userId);
 
-// Create booking object
-    const bookingId = generateBookingId();
-    const booking = {
-      bookingId,
-      deviceType,
-      issue,
-      customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
-      preferredTime,
-      address,
-      photo: photoFile ? {
-        filename: photoFile.filename,
-        originalName: photoFile.originalname,
-        path: photoFile.path,
-        size: photoFile.size
-      } : null,
-      createdAt: new Date().toISOString(),
-      status: 'pending',
-      warrantyToken: generateWarrantyToken(bookingId),
-      warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(), // 1 year warranty
-      technician: 'John Smith',
-      cost: Math.floor(Math.random() * 200) + 50, // Random cost between $50-250
-      deviceModel: `${deviceType} Model`
-    };
+    // Save only user-associated bookings
+    bookingUtils.writeBookings(userBookings);
 
-    // Read existing bookings
-    const bookings = readBookings();
-
-    // Add new booking
-    bookings.push(booking);
-
-    // Save to file
-    if (!writeBookings(bookings)) {
-      return res.status(500).json({
-        success: false,
-        message: 'Failed to save booking'
-      });
-    }
-
-    // Return success response
     res.status(200).json({
       success: true,
-      message: 'Booking created successfully',
-      bookingId: booking.bookingId,
-      booking: {
-        bookingId: booking.bookingId,
-        deviceType: booking.deviceType,
-        issue: booking.issue,
-        preferredTime: booking.preferredTime,
-        status: booking.status
+      message: 'Data cleanup completed',
+      data: {
+        removedBookings: orphanedBookings.length,
+        remainingBookings: userBookings.length
       }
     });
 
   } catch (error) {
-    console.error('Error creating booking:', error);
+    console.error('Cleanup error:', error);
     res.status(500).json({
       success: false,
-      message: 'Internal server error'
-    });
-  }
-});
-
-// GET route to retrieve all bookings (for testing)
-app.get('/api/v1/bookings', (req, res) => {
-  try {
-    const bookings = readBookings();
-    
-    // Add missing fields to existing bookings for compatibility
-    const updatedBookings = bookings.map(booking => ({
-      ...booking,
-      warrantyToken: booking.warrantyToken || generateWarrantyToken(booking.bookingId),
-      warrantyExpiry: booking.warrantyExpiry || new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
-      technician: booking.technician || 'John Smith',
-      cost: booking.cost || 150,
-      deviceModel: booking.deviceModel || `${booking.deviceType} Model`,
-      date: booking.date || booking.createdAt
-    }));
-    
-    res.status(200).json({
-      success: true,
-      bookings: updatedBookings
-    });
-  } catch (error) {
-    console.error('Error retrieving bookings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
-  }
-});
-
-// GET route to retrieve specific booking by ID
-app.get('/api/v1/bookings/:id', (req, res) => {
-  try {
-    const { id } = req.params;
-    const bookings = readBookings();
-    const booking = bookings.find(b => b.bookingId === id.toUpperCase());
-    
-    if (!booking) {
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found'
-      });
-    }
-
-    // Generate mock timeline based on creation date and status
-    const timeline = generateTimeline(booking);
-    
-    // Return full booking object with timeline
-    const bookingWithTimeline = {
-      ...booking,
-      timeline,
-      id: booking.bookingId,
-      deviceModel: booking.deviceType === 'smartphone' ? 'iPhone 13' : 'MacBook Pro 2021',
-      technician: booking.technician || 'John Smith',
-      customerName: 'Customer Name'
-    };
-
-    res.status(200).json({
-      success: true,
-      booking: bookingWithTimeline
-    });
-  } catch (error) {
-    console.error('Error retrieving booking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
+      message: 'Failed to cleanup data'
     });
   }
 });

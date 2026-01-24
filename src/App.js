@@ -1,8 +1,11 @@
 import React from 'react';
 import { HashRouter as Router, Routes, Route, Link, useLocation } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/AuthContext';
+import ProtectedRoute from './components/ProtectedRoute';
 import BookingWizard from './components/BookingWizard';
 import TechnicianDashboard from './components/TechnicianDashboard';
-import OTPLogin from './components/OTPLogin';
+import LoginPage from './components/LoginPage';
+import SignupPage from './components/SignupPage';
 import BookingsDashboard from './components/BookingsDashboard';
 import HomePage from './components/HomePage';
 import TrackPage from './components/TrackPage';
@@ -11,10 +14,20 @@ import SuccessPage from './components/SuccessPage';
 // Navigation component
 const Navigation = () => {
   const location = useLocation();
+  const { isAuthenticated, user, logout } = useAuth();
   
   const isActive = (path) => {
     return location.pathname === path;
   };
+
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // Don't show navigation on auth pages
+  if (location.pathname === '/login' || location.pathname === '/signup') {
+    return null;
+  }
 
   return (
     <nav className="bg-white shadow-sm border-b border-gray-200">
@@ -26,56 +39,68 @@ const Navigation = () => {
             </Link>
           </div>
           <div className="flex items-center space-x-2 sm:space-x-4">
-            <Link
-              to="/"
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                isActive('/')
-                  ? 'bg-brand text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Home
-            </Link>
-            <Link
-              to="/book"
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                isActive('/book')
-                  ? 'bg-brand text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Book Repair
-            </Link>
-            <Link
-              to="/track"
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                isActive('/track')
-                  ? 'bg-brand text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Track
-            </Link>
-            <Link
-              to="/repairs"
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                isActive('/repairs')
-                  ? 'bg-brand text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              My Bookings
-            </Link>
-            <Link
-              to="/login"
-              className={`px-3 sm:px-4 py-2 rounded-lg font-medium transition-colors text-sm ${
-                isActive('/login')
-                  ? 'bg-brand text-white'
-                  : 'text-gray-600 hover:text-gray-900'
-              }`}
-            >
-              Login
-            </Link>
+            {isAuthenticated ? (
+              <>
+                <Link
+                  to="/"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    isActive('/') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                  }`}
+                >
+                  Home
+                </Link>
+                <Link
+                  to="/book"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    isActive('/book') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                  }`}
+                >
+                  Book Service
+                </Link>
+                <Link
+                  to="/bookings"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    isActive('/bookings') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                  }`}
+                >
+                  My Bookings
+                </Link>
+                <Link
+                  to="/track"
+                  className={`px-3 py-2 rounded-md text-sm font-medium ${
+                    isActive('/track') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                  }`}
+                >
+                  Track
+                </Link>
+                <div className="flex items-center space-x-2 border-l pl-4">
+                  <span className="text-sm text-gray-600">
+                    Welcome, {user?.firstName}
+                  </span>
+                  <button
+                    onClick={handleLogout}
+                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                  >
+                    Logout
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <Link
+                  to="/login"
+                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
+                >
+                  Login
+                </Link>
+                <Link
+                  to="/signup"
+                  className="px-4 py-2 rounded-md text-sm font-medium text-white bg-brand hover:bg-opacity-90"
+                >
+                  Sign Up
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </div>
@@ -85,20 +110,38 @@ const Navigation = () => {
 
 function App() {
   return (
-    <Router>
-      <div className="min-h-screen bg-gray-50 font-sans">
-        <Navigation />
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/book" element={<BookingWizard />} />
-          <Route path="/track" element={<TrackPage />} />
-          <Route path="/repairs" element={<BookingsDashboard />} />
-          <Route path="/login" element={<OTPLogin />} />
-          <Route path="/technician" element={<TechnicianDashboard />} />
-          <Route path="/success" element={<SuccessPage />} />
-        </Routes>
-      </div>
-    </Router>
+    <AuthProvider>
+      <Router>
+        <div className="min-h-screen bg-gray-50 font-sans">
+          <Navigation />
+          <Routes>
+            {/* Public routes */}
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/signup" element={<SignupPage />} />
+            <Route path="/track" element={<TrackPage />} />
+            <Route path="/success" element={<SuccessPage />} />
+            
+            {/* Protected routes */}
+            <Route path="/book" element={
+              <ProtectedRoute>
+                <BookingWizard />
+              </ProtectedRoute>
+            } />
+            <Route path="/bookings" element={
+              <ProtectedRoute>
+                <BookingsDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/technician" element={
+              <ProtectedRoute>
+                <TechnicianDashboard />
+              </ProtectedRoute>
+            } />
+          </Routes>
+        </div>
+      </Router>
+    </AuthProvider>
   );
 }
 

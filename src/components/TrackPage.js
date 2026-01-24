@@ -1,8 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const TrackPage = () => {
   const location = useLocation();
+  const { token } = useAuth();
   const [bookingId, setBookingId] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -25,7 +27,11 @@ const TrackPage = () => {
       // Call real API instead of using dummy data
       const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
       console.log('Tracking booking ID:', trackingId);
-      const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`);
+      const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`
+        }
+      });
       console.log('Track response status:', response.status);
       
       if (!response.ok) {
