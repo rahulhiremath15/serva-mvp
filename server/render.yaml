@@ -3,7 +3,7 @@ services:
     name: serva-api
     env: node
     plan: free
-    buildCommand: "echo 'Skipping build...'"
+    buildCommand: "npm install"
     startCommand: "npm start"
     envVars:
       - key: NODE_ENV
