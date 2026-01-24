@@ -152,6 +152,142 @@ function generateTimeline(booking) {
 // Serve uploaded files
 app.use('/uploads', express.static('uploads'));
 
+// POST route for booking submissions (protected)
+app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, res) => {
+  try {
+    const { deviceType, issue, preferredTime, address } = req.body;
+    const customIssueDescription = req.body.customIssueDescription;
+    const photoFile = req.file;
+    const userId = req.user.id; // Get user ID from authenticated token
+
+    // Validate required fields
+    if (!deviceType || !issue || !preferredTime || !address) {
+      return res.status(400).json({
+        success: false,
+        message: 'Missing required fields'
+      });
+    }
+
+    // Validate custom issue description if "other" is selected
+    if (issue === 'other' && !customIssueDescription) {
+      return res.status(400).json({
+        success: false,
+        message: 'Custom issue description is required when "Other" is selected'
+      });
+    }
+
+    // Create booking with user association
+    const result = bookingUtils.createBooking({
+      deviceType,
+      issue,
+      customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
+      preferredTime,
+      address,
+      photo: photoFile ? {
+        filename: photoFile.filename,
+        originalName: photoFile.originalname,
+        path: photoFile.path,
+        size: photoFile.size
+      } : null
+    }, userId);
+
+    if (!result.success) {
+      return res.status(500).json({
+        success: false,
+        message: result.message || 'Failed to create booking'
+      });
+    }
+
+    // Return success response
+    res.status(200).json({
+      success: true,
+      message: 'Booking created successfully',
+      bookingId: result.booking.bookingId,
+      booking: {
+        bookingId: result.booking.bookingId,
+        deviceType: result.booking.deviceType,
+        issue: result.booking.issue,
+        preferredTime: result.booking.preferredTime,
+        status: result.booking.status
+      }
+    });
+
+  } catch (error) {
+    console.error('Error creating booking:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET route to retrieve user's bookings (protected)
+app.get('/api/v1/bookings', authenticateToken, (req, res) => {
+  try {
+    const userId = req.user.id;
+    const bookings = bookingUtils.getBookingsByUserId(userId);
+    
+    // Sort bookings by date (newest first)
+    const sortedBookings = bookings.sort((a, b) => 
+      new Date(b.createdAt || b.date) - new Date(a.createdAt || b.date)
+    );
+    
+    res.status(200).json({
+      success: true,
+      bookings: sortedBookings
+    });
+  } catch (error) {
+    console.error('Error retrieving bookings:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
+// GET route to retrieve specific booking by ID (protected)
+app.get('/api/v1/bookings/:id', authenticateToken, (req, res) => {
+  try {
+    const { id } = req.params;
+    const userId = req.user.id;
+    const bookings = bookingUtils.readBookings();
+    
+    // Find booking that belongs to the authenticated user
+    const booking = bookings.find(b => b.bookingId === id.toUpperCase() && b.userId === userId);
+    
+    if (!booking) {
+      return res.status(404).json({
+        success: false,
+        message: 'Booking not found or access denied'
+      });
+    }
+
+    // Generate mock timeline based on creation date and status
+    const timeline = generateTimeline(booking);
+    
+    // Return full booking object with timeline
+    const bookingWithTimeline = {
+      ...booking,
+      timeline,
+      id: booking.bookingId,
+      deviceModel: booking.deviceType === 'smartphone' ? 'iPhone 13' : 'MacBook Pro 2021',
+      technician: booking.technician || 'John Smith',
+      customerName: `${req.user.firstName} ${req.user.lastName}`
+    };
+
+    res.status(200).json({
+      success: true,
+      booking: bookingWithTimeline
+    });
+  } catch (error) {
+    console.error('Error retrieving booking:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Internal server error'
+    });
+  }
+});
+
 // Error handling middleware
 app.use((error, req, res, next) => {
   if (error instanceof multer.MulterError) {
