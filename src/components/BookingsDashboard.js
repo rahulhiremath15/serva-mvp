@@ -21,7 +21,11 @@ const BookingsDashboard = () => {
           const result = await response.json();
           console.log('Bookings data:', result);
           if (result.success) {
-            setBookings(result.bookings);
+            // Sort bookings by date (newest first)
+            const sortedBookings = result.bookings.sort((a, b) => 
+              new Date(b.createdAt || b.date) - new Date(a.createdAt || a.date)
+            );
+            setBookings(sortedBookings);
           }
         } else {
           console.error('API response not ok:', response.status);

@@ -23,7 +23,9 @@ const TrackPage = () => {
     try {
       // Call real API instead of using dummy data
       const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
+      console.log('Tracking booking ID:', trackingId);
       const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`);
+      console.log('Track response status:', response.status);
       
       if (!response.ok) {
         if (response.status === 404) {
@@ -36,6 +38,7 @@ const TrackPage = () => {
       }
 
       const result = await response.json();
+      console.log('Track result:', result);
       
       if (result.success) {
         setTrackingResult(result.booking);
