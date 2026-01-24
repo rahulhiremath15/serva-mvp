@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const SignupPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -78,7 +80,12 @@ const SignupPage = () => {
     
     try {
       const { confirmPassword, ...userData } = formData;
-      await register(userData);
+      const result = await register(userData);
+      
+      if (result.success) {
+        // Redirect to home page after successful signup
+        navigate('/');
+      }
     } finally {
       setIsSubmitting(false);
     }

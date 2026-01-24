@@ -6,6 +6,7 @@ const BookingWizard = () => {
   const navigate = useNavigate();
   const { token } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
+  const [isLoading, setIsLoading] = useState(false);
   const [bookingData, setBookingData] = useState({
     deviceType: '',
     issue: '',
@@ -64,30 +65,16 @@ const BookingWizard = () => {
     }
   };
 
-  const handleDeviceTypeSelect = (type) => {
-    setBookingData({ ...bookingData, deviceType: type, issue: '', customIssueDescription: '' });
-  };
-
-  const handleIssueSelect = (issue) => {
-    setBookingData({ ...bookingData, issue, customIssueDescription: issue === 'other' ? '' : bookingData.customIssueDescription });
-  };
-
-  const handleCustomIssueDescriptionChange = (description) => {
-    setBookingData({ ...bookingData, customIssueDescription: description });
-  };
-
-  const handlePhotoUpload = (e) => {
-    const file = e.target.files[0];
-    if (file) {
-      setBookingData({ ...bookingData, photo: file });
-    }
-  };
-
-  const handlePhotoRemove = () => {
-    setBookingData({ ...bookingData, photo: null });
-  };
-
   const handleSubmit = async () => {
+    // Check if user is authenticated
+    if (!token) {
+      alert('Please login to submit a booking');
+      navigate('/login');
+      return;
+    }
+
+    setIsLoading(true);
+    
     try {
       console.log('Starting booking submission...');
       console.log('Booking data:', bookingData);
@@ -95,17 +82,20 @@ const BookingWizard = () => {
       const formData = new FormData();
       formData.append('deviceType', bookingData.deviceType);
       formData.append('issue', bookingData.issue);
+      formData.append('preferredTime', bookingData.preferredTime);
+      formData.append('address', bookingData.address);
+      
       if (bookingData.issue === 'other' && bookingData.customIssueDescription) {
         formData.append('customIssueDescription', bookingData.customIssueDescription);
       }
+      
       if (bookingData.photo) {
         formData.append('photo', bookingData.photo);
       }
-      formData.append('preferredTime', bookingData.preferredTime);
-      formData.append('address', bookingData.address);
 
       const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
       console.log('Sending request to:', `${apiUrl}/api/v1/bookings`);
+      console.log('Auth token available:', !!token);
       console.log('FormData contents:');
       for (let [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
@@ -124,6 +114,7 @@ const BookingWizard = () => {
 
       if (response.ok) {
         const result = await response.json();
+        console.log('Success response:', result);
         
         // Navigate to success page with booking data
         navigate('/success', { 
@@ -150,12 +141,37 @@ const BookingWizard = () => {
       } else {
         const errorData = await response.json().catch(() => ({}));
         console.error('Server error response:', errorData);
-        alert(errorData.message || 'Failed to submit booking. Please try again.');
+        alert(`Booking failed: ${errorData.message || 'Server error. Please try again.'}`);
       }
     } catch (error) {
       console.error('Network/JavaScript error:', error);
-      alert(`Error submitting booking: ${error.message || 'Unknown error'}. Please try again.`);
+      alert(`Error submitting booking: ${error.message || 'Network error. Please try again.'}`);
+    } finally {
+      setIsLoading(false);
     }
+  };
+
+  const handleDeviceTypeSelect = (type) => {
+    setBookingData({ ...bookingData, deviceType: type, issue: '', customIssueDescription: '' });
+  };
+
+  const handleIssueSelect = (issue) => {
+    setBookingData({ ...bookingData, issue, customIssueDescription: issue === 'other' ? '' : bookingData.customIssueDescription });
+  };
+
+  const handleCustomIssueDescriptionChange = (description) => {
+    setBookingData({ ...bookingData, customIssueDescription: description });
+  };
+
+  const handlePhotoUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      setBookingData({ ...bookingData, photo: file });
+    }
+  };
+
+  const handlePhotoRemove = () => {
+    setBookingData({ ...bookingData, photo: null });
   };
 
   const renderStepContent = () => {
@@ -338,9 +354,10 @@ const BookingWizard = () => {
             </div>
             <button
               onClick={handleSubmit}
-              className="w-full bg-brand text-white py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-colors"
+              disabled={isLoading}
+              className="w-full bg-brand text-white py-4 rounded-lg font-semibold hover:bg-opacity-90 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              Confirm Booking
+              {isLoading ? 'Submitting...' : 'Confirm Booking'}
             </button>
           </div>
         );
