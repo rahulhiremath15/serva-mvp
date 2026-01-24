@@ -102,13 +102,14 @@ const BookingWizard = () => {
       formData.append('preferredTime', bookingData.preferredTime);
       formData.append('address', bookingData.address);
 
-      console.log('Sending request to: http://localhost:5000/api/v1/bookings');
+      const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
+      console.log('Sending request to:', `${apiUrl}/api/v1/bookings`);
       console.log('FormData contents:');
       for (let [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
       }
 
-      const response = await fetch('http://localhost:5000/api/v1/bookings', {
+      const response = await fetch(`${apiUrl}/api/v1/bookings`, {
         method: 'POST',
         body: formData,
       });
