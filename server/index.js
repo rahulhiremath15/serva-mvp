@@ -13,6 +13,30 @@ const { bookingUtils } = require('./utils/dataManager');
 const app = express();
 const PORT = process.env.PORT || 5000;
 
+// Initialize data directory and files
+const DATA_DIR = path.join(__dirname, 'data');
+console.log('Initializing data directory:', DATA_DIR);
+
+if (!fs.existsSync(DATA_DIR)) {
+  console.log('Creating data directory...');
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
+
+if (!fs.existsSync(USERS_FILE)) {
+  console.log('Creating users.json file...');
+  fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
+}
+
+if (!fs.existsSync(BOOKINGS_FILE)) {
+  console.log('Creating bookings.json file...');
+  fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([], null, 2));
+}
+
+console.log('Data initialization complete.');
+
 // Middleware
 app.use(cors({
   origin: [
