@@ -72,6 +72,72 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: '2.0.0', auth: 'enabled' });
 });
 
+// Diagnostic endpoint to check data files
+app.get('/api/diagnostic', (req, res) => {
+  try {
+    const diagnostic = {
+      dataDir: DATA_DIR,
+      dataDirExists: fs.existsSync(DATA_DIR),
+      usersFile: USERS_FILE,
+      usersFileExists: fs.existsSync(USERS_FILE),
+      bookingsFile: BOOKINGS_FILE,
+      bookingsFileExists: fs.existsSync(BOOKINGS_FILE),
+      usersData: null,
+      bookingsData: null
+    };
+
+    if (diagnostic.usersFileExists) {
+      try {
+        const usersData = fs.readFileSync(USERS_FILE, 'utf8');
+        diagnostic.usersData = JSON.parse(usersData);
+        diagnostic.usersCount = diagnostic.usersData.length;
+      } catch (e) {
+        diagnostic.usersError = e.message;
+      }
+    }
+
+    if (diagnostic.bookingsFileExists) {
+      try {
+        const bookingsData = fs.readFileSync(BOOKINGS_FILE, 'utf8');
+        diagnostic.bookingsData = JSON.parse(bookingsData);
+        diagnostic.bookingsCount = diagnostic.bookingsData.length;
+      } catch (e) {
+        diagnostic.bookingsError = e.message;
+      }
+    }
+
+    res.json({ success: true, diagnostic });
+  } catch (error) {
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
+// Test booking creation endpoint
+app.post('/api/test-booking', authenticateToken, (req, res) => {
+  try {
+    console.log('Test booking endpoint called');
+    console.log('User:', req.user);
+    
+    const testBookingData = {
+      deviceType: 'laptop',
+      issue: 'battery',
+      preferredTime: '10:00 AM',
+      address: 'Test Address'
+    };
+
+    console.log('Test booking data:', testBookingData);
+    console.log('Calling bookingUtils.createBooking...');
+
+    const result = bookingUtils.createBooking(testBookingData, req.user.id);
+    console.log('Booking result:', result);
+
+    res.json({ success: true, result });
+  } catch (error) {
+    console.error('Test booking error:', error);
+    res.status(500).json({ success: false, error: error.message });
+  }
+});
+
 // Configure multer for file uploads
 const storage = multer.diskStorage({
   destination: (req, file, cb) => {
