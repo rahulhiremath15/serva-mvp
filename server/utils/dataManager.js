@@ -2,8 +2,24 @@ const fs = require('fs');
 const path = require('path');
 const validator = require('validator');
 
-const USERS_FILE = path.join(__dirname, 'users.json');
-const BOOKINGS_FILE = path.join(__dirname, 'bookings.json');
+// Use a proper data directory
+const DATA_DIR = path.join(__dirname, '..', 'data');
+const USERS_FILE = path.join(DATA_DIR, 'users.json');
+const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
+
+// Ensure data directory exists
+if (!fs.existsSync(DATA_DIR)) {
+  fs.mkdirSync(DATA_DIR, { recursive: true });
+}
+
+// Ensure data files exist
+if (!fs.existsSync(USERS_FILE)) {
+  fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
+}
+
+if (!fs.existsSync(BOOKINGS_FILE)) {
+  fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([], null, 2));
+}
 
 // Helper functions for user data management
 const userUtils = {
