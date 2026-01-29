@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation, useSearchParams } from 'react-router-dom';
+import { useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const TrackPage = () => {
-  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { token } = useAuth();
   const [bookingId, setBookingId] = useState('');
