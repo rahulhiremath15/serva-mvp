@@ -1,8 +1,6 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
-const fs = require('fs');
-const path = require('path');
 
 // Import database connection
 const connectDB = require('./config/db');
@@ -54,37 +52,28 @@ app.get('/health', (req, res) => {
   res.json({ status: 'ok', version: '2.0.0', auth: 'enabled' });
 });
 
-// Diagnostic endpoint to check data files
-app.get('/api/diagnostic', (req, res) => {
+// Diagnostic endpoint to check MongoDB connection and data
+app.get('/api/diagnostic', async (req, res, next) => {
   try {
+    const User = require('./models/User');
+    const Booking = require('./models/Booking');
+    
     const diagnostic = {
-      dataDir: DATA_DIR,
-      dataDirExists: fs.existsSync(DATA_DIR),
-      usersFile: USERS_FILE,
-      usersFileExists: fs.existsSync(USERS_FILE),
-      bookingsFile: BOOKINGS_FILE,
-      bookingsFileExists: fs.existsSync(BOOKINGS_FILE),
-      usersData: null,
-      bookingsData: null
+      database: 'MongoDB',
+      connected: require('mongoose').connection.readyState === 1,
+      collections: {
+        users: 0,
+        bookings: 0
+      },
+      error: null
     };
 
-    if (diagnostic.usersFileExists) {
+    if (diagnostic.connected) {
       try {
-        const usersData = fs.readFileSync(USERS_FILE, 'utf8');
-        diagnostic.usersData = JSON.parse(usersData);
-        diagnostic.usersCount = diagnostic.usersData.length;
+        diagnostic.collections.users = await User.countDocuments();
+        diagnostic.collections.bookings = await Booking.countDocuments();
       } catch (e) {
-        diagnostic.usersError = e.message;
-      }
-    }
-
-    if (diagnostic.bookingsFileExists) {
-      try {
-        const bookingsData = fs.readFileSync(BOOKINGS_FILE, 'utf8');
-        diagnostic.bookingsData = JSON.parse(bookingsData);
-        diagnostic.bookingsCount = diagnostic.bookingsData.length;
-      } catch (e) {
-        diagnostic.bookingsError = e.message;
+        diagnostic.error = e.message;
       }
     }
 
