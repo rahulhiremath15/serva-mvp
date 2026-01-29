@@ -66,13 +66,12 @@ const bookingSchema = new mongoose.Schema({
 });
 
 // Generate booking ID before saving
-bookingSchema.pre('save', function(next) {
+bookingSchema.pre('save', async function() {
   if (this.isNew && !this.warrantyToken) {
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 5);
     this.warrantyToken = `WT${timestamp}${random}`.toUpperCase();
   }
-  next();
 });
 
 module.exports = mongoose.model('Booking', bookingSchema);

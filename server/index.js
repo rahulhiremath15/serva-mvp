@@ -105,7 +105,7 @@ app.post('/api/test-booking', authenticateToken, async (req, res, next) => {
     res.json({ success: true, result });
   } catch (error) {
     console.error('Test booking error:', error);
-    res.status(500).json({ success: false, error: error.message });
+    next(error);
   }
 });
 
@@ -292,10 +292,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (r
 
   } catch (error) {
     console.error('Error creating booking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    next(error);
   }
 });
 
@@ -322,10 +319,7 @@ app.get('/api/v1/bookings', authenticateToken, async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error retrieving bookings:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    next(error);
   }
 });
 
@@ -371,10 +365,7 @@ app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
     });
   } catch (error) {
     console.error('Error retrieving booking:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error'
-    });
+    next(error);
   }
 });
 
