@@ -38,10 +38,15 @@ const LoginPage = () => {
       
       if (result.success) {
         // Redirect to homepage after successful login
-        navigate('/');
+        navigate('/'); // FORCE REDIRECT immediately
+      } else {
+        setError(result.error || 'Login failed. Please try again.');
       }
+    } catch (err) {
+      console.error('Login error:', err);
+      setError('An error occurred during login. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // CRITICAL: This ensures spinner ALWAYS stops
     }
   };
 

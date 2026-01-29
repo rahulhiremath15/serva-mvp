@@ -107,34 +107,31 @@ const OTPLogin = () => {
     setIsLoading(true);
     setError('');
 
-    // Simulate API call - accept "123456" as valid OTP for demo
-    if (otpValue === '123456') {
-      console.log('OTP verified successfully');
-      
-      // For demo, create a demo email from phone number and login
-      const demoEmail = `user${phoneNumber.replace(/\D/g, '')}@serva.demo`;
-      
-      try {
+    try {
+      // Simulate API call - accept "123456" as valid OTP for demo
+      if (otpValue === '123456') {
+        console.log('OTP verified successfully');
+        
+        // For demo, create a demo email from phone number and login
+        const demoEmail = `user${phoneNumber.replace(/\D/g, '')}@serva.demo`;
+        
         // Attempt to login with demo credentials
         const result = await login(demoEmail, 'demo123');
         
         if (result.success) {
           console.log('Authentication successful');
-          console.log('Login success, redirecting...');
-          navigate('/');
+          navigate('/'); // FORCE REDIRECT immediately
         } else {
-          console.log('Demo login failed, but continuing anyway');
-          console.log('Login success, redirecting...');
-          navigate('/');
+          setError('Login failed. Please try again.');
         }
-      } catch (error) {
-        console.error('Login error during OTP verification:', error);
-        console.log('Login success, redirecting...');
-        navigate('/');
+      } else {
+        setError('Invalid OTP. Please try again or use 123456 for demo.');
       }
-    } else {
-      setIsLoading(false);
-      setError('Invalid OTP. Please try again or use 123456 for demo.');
+    } catch (err) {
+      console.error('Login error during OTP verification:', err);
+      setError('An error occurred during login. Please try again.');
+    } finally {
+      setIsLoading(false); // CRITICAL: This ensures spinner ALWAYS stops
     }
   };
 

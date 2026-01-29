@@ -84,10 +84,15 @@ const SignupPage = () => {
       
       if (result.success) {
         // Redirect to homepage after successful signup
-        navigate('/');
+        navigate('/'); // FORCE REDIRECT immediately
+      } else {
+        setError(result.error || 'Registration failed. Please try again.');
       }
+    } catch (err) {
+      console.error('Registration error:', err);
+      setError('An error occurred during registration. Please try again.');
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false); // CRITICAL: This ensures spinner ALWAYS stops
     }
   };
 

@@ -78,7 +78,7 @@ const validateLoginInput = (req, res, next) => {
 };
 
 // POST /api/auth/register - User registration
-router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res) => {
+router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res, next) => {
   try {
     const { email, password, firstName, lastName, phone } = req.body;
     
@@ -135,15 +135,12 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
 
   } catch (error) {
     console.error('Registration error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during registration'
-    });
+    next(error);
   }
 });
 
 // POST /api/auth/login - User login
-router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (req, res) => {
+router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (req, res, next) => {
   try {
     const { email, password } = req.body;
     
@@ -213,10 +210,7 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
 
   } catch (error) {
     console.error('Login error:', error);
-    res.status(500).json({
-      success: false,
-      message: 'Internal server error during login'
-    });
+    next(error);
   }
 });
 
