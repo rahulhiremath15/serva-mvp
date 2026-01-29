@@ -62,7 +62,7 @@ const BookingsDashboard = () => {
     };
 
     fetchBookings();
-  }, [token]);
+  }, [token, navigate]);
 
   const openWarrantyModal = (booking) => {
     setSelectedBooking(booking);
