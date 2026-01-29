@@ -190,6 +190,11 @@ const bookingUtils = {
     try {
       console.log('createBooking called with:', { bookingData, userId });
       
+      // Defensive checks
+      if (!userId) {
+        throw new Error('User ID is required for booking');
+      }
+
       if (!bookingData || typeof bookingData !== 'object') {
         console.log('Invalid booking data provided');
         return { success: false, message: 'Invalid booking data provided' };
@@ -221,14 +226,15 @@ const bookingUtils = {
       const bookings = this.readBookings();
       console.log('Current bookings count:', bookings.length);
       
+      // Construct booking object safely
       const newBooking = {
         bookingId: this.generateBookingId(),
         userId,
-        deviceType: bookingData.deviceType?.trim() || '',
-        issue: bookingData.issue?.trim() || '',
-        customIssueDescription: bookingData.issue === 'other' ? (bookingData.customIssueDescription?.trim() || '') : undefined,
-        preferredTime: bookingData.preferredTime?.trim() || '',
-        address: bookingData.address?.trim() || '',
+        deviceType: (bookingData.deviceType || '').trim(),
+        issue: (bookingData.issue || '').trim(),
+        customIssueDescription: bookingData.issue === 'other' ? (bookingData.customIssueDescription || '').trim() : undefined,
+        preferredTime: (bookingData.preferredTime || '').trim(),
+        address: (bookingData.address || '').trim(),
         photo: bookingData.photo || null,
         createdAt: new Date().toISOString(),
         status: 'pending',
@@ -265,7 +271,7 @@ const bookingUtils = {
       }
     } catch (error) {
       console.error('Error in createBooking:', error);
-      return { success: false, message: 'Internal error while creating booking' };
+      return { success: false, message: error.message || 'Internal error while creating booking' };
     }
   },
 

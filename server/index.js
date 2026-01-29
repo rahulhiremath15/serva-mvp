@@ -228,8 +228,25 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
     console.log('Request body:', req.body);
     console.log('Uploaded file:', req.file);
     
+    // Defensive check for user
+    if (!req.user) {
+      console.log('No user found in request - authentication failed');
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required'
+      });
+    }
+
     const userId = req.user.id;
     console.log('User ID:', userId);
+
+    if (!userId) {
+      console.log('User ID is missing from authenticated user');
+      return res.status(401).json({
+        success: false,
+        message: 'Invalid user authentication'
+      });
+    }
 
     // Extract data from FormData
     const { deviceType, issue, customIssueDescription, preferredTime, address } = req.body;
@@ -262,7 +279,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
 
     console.log('Creating booking...');
     // Create booking with user association
-    const result = bookingUtils.createBooking({
+    const bookingDetails = {
       deviceType,
       issue,
       customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
@@ -274,8 +291,9 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
         path: req.file.path,
         size: req.file.size
       } : null
-    }, userId);
+    };
 
+    const result = bookingUtils.createBooking(bookingDetails, userId);
     console.log('Booking creation result:', result);
 
     if (!result.success) {
