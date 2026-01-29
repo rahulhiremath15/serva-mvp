@@ -95,7 +95,7 @@ app.get('/api/diagnostic', (req, res) => {
 });
 
 // Test booking creation endpoint
-app.post('/api/test-booking', authenticateToken, async (req, res) => {
+app.post('/api/test-booking', authenticateToken, async (req, res, next) => {
   try {
     console.log('Test booking endpoint called');
     console.log('User:', req.user);
@@ -202,7 +202,7 @@ function generateTimeline(booking) {
 }
 
 // POST route for booking submissions (protected)
-app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (req, res) => {
+app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (req, res, next) => {
   try {
     console.log('POST /api/v1/bookings - Request received');
     console.log('User authenticated:', !!req.user);
@@ -311,7 +311,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (r
 });
 
 // GET route to retrieve user's bookings (protected)
-app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
+app.get('/api/v1/bookings', authenticateToken, async (req, res, next) => {
   try {
     console.log('GET /api/v1/bookings - Request received');
     console.log('User authenticated:', !!req.user);
@@ -341,7 +341,7 @@ app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
 });
 
 // GET route to retrieve specific booking by ID (protected)
-app.get('/api/v1/bookings/:id', authenticateToken, (req, res) => {
+app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
   try {
     console.log('GET /api/v1/bookings/:id - Request received');
     console.log('User authenticated:', !!req.user);
