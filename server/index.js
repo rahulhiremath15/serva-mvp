@@ -4,6 +4,12 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 
+// Import database connection
+const connectDB = require('./config/db');
+
+// Connect to MongoDB
+connectDB();
+
 // Import authentication middleware and routes
 const { authenticateToken, optionalAuth } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
@@ -12,30 +18,6 @@ const { bookingUtils } = require('./utils/dataManager');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
-
-// Initialize data directory and files
-const DATA_DIR = path.join(__dirname, 'data');
-console.log('Initializing data directory:', DATA_DIR);
-
-if (!fs.existsSync(DATA_DIR)) {
-  console.log('Creating data directory...');
-  fs.mkdirSync(DATA_DIR, { recursive: true });
-}
-
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
-
-if (!fs.existsSync(USERS_FILE)) {
-  console.log('Creating users.json file...');
-  fs.writeFileSync(USERS_FILE, JSON.stringify([], null, 2));
-}
-
-if (!fs.existsSync(BOOKINGS_FILE)) {
-  console.log('Creating bookings.json file...');
-  fs.writeFileSync(BOOKINGS_FILE, JSON.stringify([], null, 2));
-}
-
-console.log('Data initialization complete.');
 
 // Middleware
 app.use(cors({
@@ -113,7 +95,7 @@ app.get('/api/diagnostic', (req, res) => {
 });
 
 // Test booking creation endpoint
-app.post('/api/test-booking', authenticateToken, (req, res) => {
+app.post('/api/test-booking', authenticateToken, async (req, res) => {
   try {
     console.log('Test booking endpoint called');
     console.log('User:', req.user);
@@ -128,7 +110,7 @@ app.post('/api/test-booking', authenticateToken, (req, res) => {
     console.log('Test booking data:', testBookingData);
     console.log('Calling bookingUtils.createBooking...');
 
-    const result = bookingUtils.createBooking(testBookingData, req.user.id);
+    const result = await bookingUtils.createBooking(testBookingData, req.user.id);
     console.log('Booking result:', result);
 
     res.json({ success: true, result });
@@ -220,7 +202,7 @@ function generateTimeline(booking) {
 }
 
 // POST route for booking submissions (protected)
-app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, res) => {
+app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
     console.log('POST /api/v1/bookings - Request received');
     console.log('User authenticated:', !!req.user);
@@ -293,7 +275,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
       } : null
     };
 
-    const result = bookingUtils.createBooking(bookingDetails, userId);
+    const result = await bookingUtils.createBooking(bookingDetails, userId);
     console.log('Booking creation result:', result);
 
     if (!result.success) {
@@ -329,7 +311,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), (req, re
 });
 
 // GET route to retrieve user's bookings (protected)
-app.get('/api/v1/bookings', authenticateToken, (req, res) => {
+app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
   try {
     console.log('GET /api/v1/bookings - Request received');
     console.log('User authenticated:', !!req.user);
@@ -337,7 +319,7 @@ app.get('/api/v1/bookings', authenticateToken, (req, res) => {
     const userId = req.user.id;
     console.log('Fetching bookings for user:', userId);
     
-    const bookings = bookingUtils.getBookingsByUserId(userId);
+    const bookings = await bookingUtils.getBookingsByUserId(userId);
     console.log('Found bookings:', bookings.length);
     
     // Sort bookings by date (newest first)

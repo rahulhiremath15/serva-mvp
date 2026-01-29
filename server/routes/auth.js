@@ -85,7 +85,7 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
     console.log('Registration request received:', { email, firstName, lastName, phone: phone || 'none' });
 
     // Check if user already exists
-    const existingUser = userUtils.findUserByEmail(email);
+    const existingUser = await userUtils.findUserByEmail(email);
     console.log('Existing user check:', !!existingUser);
     
     if (existingUser) {
@@ -101,7 +101,7 @@ router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput
     console.log('Password hashed successfully');
 
     // Create user
-    const result = userUtils.createUser({
+    const result = await userUtils.createUser({
       email,
       password: hashedPassword,
       firstName: firstName.trim(),
@@ -150,7 +150,7 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
     console.log('Login attempt:', { email, passwordLength: password?.length });
 
     // Find user by email
-    const user = userUtils.findUserByEmail(email);
+    const user = await userUtils.findUserByEmail(email);
     console.log('User found:', !!user, 'Email searched:', email);
     
     if (!user) {
@@ -161,11 +161,11 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
       });
     }
 
-    console.log('User found:', user.id, 'Active:', user.isActive);
+    console.log('User found:', user._id, 'Active:', user.isActive);
 
     // Check if user is active
     if (!user.isActive) {
-      console.log('User account deactivated:', user.id);
+      console.log('User account deactivated:', user._id);
       return res.status(401).json({
         success: false,
         message: 'Account is deactivated. Please contact support.'

@@ -1,63 +1,14 @@
-const fs = require('fs');
-const path = require('path');
 const validator = require('validator');
-
-// Use the same data paths as main server
-const DATA_DIR = path.join(__dirname, '..', 'data');
-const USERS_FILE = path.join(DATA_DIR, 'users.json');
-const BOOKINGS_FILE = path.join(DATA_DIR, 'bookings.json');
+const User = require('../models/User');
+const Booking = require('../models/Booking');
 
 // Helper functions for user data management
 const userUtils = {
-  // Read users from file
-  readUsers() {
-    try {
-      if (fs.existsSync(USERS_FILE)) {
-        const data = fs.readFileSync(USERS_FILE, 'utf8');
-        return JSON.parse(data);
-      }
-      return [];
-    } catch (error) {
-      console.error('Error reading users:', error);
-      return [];
-    }
-  },
-
-  // Write users to file
-  writeUsers(users) {
-    try {
-      fs.writeFileSync(USERS_FILE, JSON.stringify(users, null, 2));
-      return true;
-    } catch (error) {
-      console.error('Error writing users:', error);
-      return false;
-    }
-  },
-
-  // Find user by email
-  findUserByEmail(email) {
-    const users = this.readUsers();
-    return users.find(user => user.email.toLowerCase() === email.toLowerCase());
-  },
-
-  // Find user by ID
-  findUserById(userId) {
-    const users = this.readUsers();
-    return users.find(user => user.id === userId);
-  },
-
   // Create new user
-  createUser(userData) {
+  async createUser(userData) {
     try {
       if (!userData || typeof userData !== 'object') {
         return { success: false, message: 'Invalid user data provided' };
-      }
-
-      const users = this.readUsers();
-      
-      // Check if user already exists
-      if (this.findUserByEmail(userData.email)) {
-        return { success: false, message: 'User already exists with this email' };
       }
 
       // Validate user data
@@ -66,59 +17,55 @@ const userUtils = {
         return { success: false, message: 'Validation failed', errors: validation.errors };
       }
 
-      const newUser = {
-        id: this.generateUserId(),
+      const newUser = await User.create({
+        firstName: userData.firstName.trim(),
+        lastName: userData.lastName.trim(),
         email: userData.email.toLowerCase().trim(),
         password: userData.password, // Should be hashed
-        firstName: userData.firstName?.trim() || '',
-        lastName: userData.lastName?.trim() || '',
-        phone: userData.phone?.trim() || '',
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        isActive: true,
-        role: userData.role || 'user'
-      };
+        phone: userData.phone ? userData.phone.trim() : ''
+      });
 
-      users.push(newUser);
-      
-      if (this.writeUsers(users)) {
-        return { success: true, user: { ...newUser, password: undefined } };
-      } else {
-        return { success: false, message: 'Failed to save user data' };
-      }
+      return { success: true, user: newUser.toObject() };
     } catch (error) {
       console.error('Error creating user:', error);
-      return { success: false, message: 'Internal error while creating user' };
+      if (error.code === 11000) {
+        return { success: false, message: 'User already exists with this email' };
+      }
+      return { success: false, message: 'Failed to create user' };
+    }
+  },
+
+  // Find user by email
+  async findUserByEmail(email) {
+    try {
+      const user = await User.findOne({ email: email.toLowerCase().trim() });
+      return user;
+    } catch (error) {
+      console.error('Error finding user by email:', error);
+      return null;
+    }
+  },
+
+  // Find user by ID
+  async findUserById(userId) {
+    try {
+      const user = await User.findById(userId);
+      return user;
+    } catch (error) {
+      console.error('Error finding user by ID:', error);
+      return null;
     }
   },
 
   // Update user
-  updateUser(userId, updateData) {
-    const users = this.readUsers();
-    const userIndex = users.findIndex(user => user.id === userId);
-    
-    if (userIndex === -1) {
-      return { success: false, message: 'User not found' };
+  async updateUser(userId, updateData) {
+    try {
+      const user = await User.findByIdAndUpdate(userId, updateData, { new: true });
+      return user;
+    } catch (error) {
+      console.error('Error updating user:', error);
+      return null;
     }
-
-    users[userIndex] = {
-      ...users[userIndex],
-      ...updateData,
-      updatedAt: new Date().toISOString()
-    };
-
-    if (this.writeUsers(users)) {
-      return { success: true, user: { ...users[userIndex], password: undefined } };
-    } else {
-      return { success: false, message: 'Failed to update user' };
-    }
-  },
-
-  // Generate unique user ID
-  generateUserId() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
-    return `USR${timestamp}${random}`.toUpperCase();
   },
 
   // Validate user data
@@ -155,58 +102,18 @@ const userUtils = {
 // Helper functions for booking data management
 const bookingUtils = {
   // Find user by ID (needed for booking validation)
-  findUserById(userId) {
-    const users = this.readUsers();
-    return users.find(user => user.id === userId);
-  },
-
-  // Read users from file (needed for findUserById)
-  readUsers() {
+  async findUserById(userId) {
     try {
-      if (fs.existsSync(USERS_FILE)) {
-        const data = fs.readFileSync(USERS_FILE, 'utf8');
-        return JSON.parse(data);
-      }
-      return [];
+      const user = await User.findById(userId);
+      return user;
     } catch (error) {
-      console.error('Error reading users:', error);
-      return [];
+      console.error('Error finding user by ID:', error);
+      return null;
     }
-  },
-
-  // Read bookings from file
-  readBookings() {
-    try {
-      if (fs.existsSync(BOOKINGS_FILE)) {
-        const data = fs.readFileSync(BOOKINGS_FILE, 'utf8');
-        return JSON.parse(data);
-      }
-      return [];
-    } catch (error) {
-      console.error('Error reading bookings:', error);
-      return [];
-    }
-  },
-
-  // Write bookings to file
-  writeBookings(bookings) {
-    try {
-      fs.writeFileSync(BOOKINGS_FILE, JSON.stringify(bookings, null, 2));
-      return true;
-    } catch (error) {
-      console.error('Error writing bookings:', error);
-      return false;
-    }
-  },
-
-  // Get bookings by user ID
-  getBookingsByUserId(userId) {
-    const bookings = this.readBookings();
-    return bookings.filter(booking => booking.userId === userId);
   },
 
   // Create booking with user association
-  createBooking(bookingData, userId) {
+  async createBooking(bookingData, userId) {
     try {
       console.log('createBooking called with:', { bookingData, userId });
       
@@ -220,14 +127,9 @@ const bookingUtils = {
         return { success: false, message: 'Invalid booking data provided' };
       }
 
-      if (!userId || typeof userId !== 'string') {
-        console.log('Invalid user ID:', userId);
-        return { success: false, message: 'Valid user ID is required' };
-      }
-
       // Verify user exists
       console.log('Looking for user with ID:', userId);
-      const user = this.findUserById(userId);
+      const user = await this.findUserById(userId);
       console.log('User found:', !!user);
       
       if (!user) {
@@ -235,79 +137,69 @@ const bookingUtils = {
         return { success: false, message: 'User not found' };
       }
 
-      console.log('User data:', { id: user.id, email: user.email, isActive: user.isActive });
+      console.log('User data:', { id: user._id, email: user.email, isActive: user.isActive });
 
       if (!user.isActive) {
         console.log('User account is not active');
         return { success: false, message: 'User account is not active' };
       }
 
-      console.log('Reading existing bookings...');
-      const bookings = this.readBookings();
-      console.log('Current bookings count:', bookings.length);
+      console.log('Creating booking...');
       
       // Construct booking object safely
-      const newBooking = {
-        bookingId: this.generateBookingId(),
-        userId,
+      const newBooking = await Booking.create({
+        user: userId,
         deviceType: (bookingData.deviceType || '').trim(),
         issue: (bookingData.issue || '').trim(),
         customIssueDescription: bookingData.issue === 'other' ? (bookingData.customIssueDescription || '').trim() : undefined,
         preferredTime: (bookingData.preferredTime || '').trim(),
         address: (bookingData.address || '').trim(),
         photo: bookingData.photo || null,
-        createdAt: new Date().toISOString(),
-        status: 'pending',
-        warrantyToken: this.generateWarrantyToken(),
-        warrantyExpiry: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000).toISOString(),
         technician: 'John Smith',
         cost: Math.floor(Math.random() * 200) + 50,
         deviceModel: `${bookingData.deviceType || 'unknown'} Model`
-      };
+      });
 
-      console.log('New booking created:', newBooking);
-
-      // Validate required fields
-      if (!newBooking.deviceType || !newBooking.issue || !newBooking.preferredTime || !newBooking.address) {
-        console.log('Missing required fields:', {
-          deviceType: !newBooking.deviceType,
-          issue: !newBooking.issue,
-          preferredTime: !newBooking.preferredTime,
-          address: !newBooking.address
-        });
-        return { success: false, message: 'Missing required booking fields' };
-      }
-
-      console.log('Adding booking to array...');
-      bookings.push(newBooking);
-      
-      console.log('Writing bookings to file...');
-      if (this.writeBookings(bookings)) {
-        console.log('Booking saved successfully');
-        return { success: true, booking: newBooking };
-      } else {
-        console.log('Failed to save booking data');
-        return { success: false, message: 'Failed to save booking data' };
-      }
+      console.log('Booking created successfully:', newBooking);
+      return { success: true, booking: newBooking.toObject() };
     } catch (error) {
       console.error('Error in createBooking:', error);
       return { success: false, message: error.message || 'Internal error while creating booking' };
     }
   },
 
-  // Generate unique booking ID
-  generateBookingId() {
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
-    return `BK${timestamp}${random}`.toUpperCase();
+  // Get bookings by user ID
+  async getBookingsByUserId(userId) {
+    try {
+      const bookings = await Booking.find({ user: userId })
+        .populate('user', 'firstName lastName email')
+        .sort({ createdAt: -1 });
+      
+      return bookings.map(booking => booking.toObject());
+    } catch (error) {
+      console.error('Error retrieving bookings:', error);
+      return [];
+    }
   },
 
-  // Generate warranty token
-  generateWarrantyToken() {
-    const crypto = require('crypto');
-    const hash = crypto.createHash('sha256');
-    hash.update(Date.now().toString() + Math.random().toString());
-    return hash.digest('hex').toUpperCase();
+  // Read all bookings (for admin purposes)
+  async readBookings() {
+    try {
+      const bookings = await Booking.find()
+        .populate('user', 'firstName lastName email')
+        .sort({ createdAt: -1 });
+      
+      return bookings.map(booking => booking.toObject());
+    } catch (error) {
+      console.error('Error reading bookings:', error);
+      return [];
+    }
+  },
+
+  // Write bookings (not needed for MongoDB but keeping for compatibility)
+  async writeBookings(bookings) {
+    // This method is not needed for MongoDB
+    return true;
   }
 };
 
