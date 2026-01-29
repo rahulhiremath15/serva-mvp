@@ -65,9 +65,17 @@ const bookingSchema = new mongoose.Schema({
   timestamps: true
 });
 
-// Generate booking ID before saving
+// Generate booking ID and warranty token before saving
 bookingSchema.pre('save', async function() {
+  if (this.isNew && !this.bookingId) {
+    // Generate unique booking ID
+    const timestamp = Date.now().toString(36);
+    const random = Math.random().toString(36).substr(2, 5);
+    this.bookingId = `BK${timestamp}${random}`.toUpperCase();
+  }
+  
   if (this.isNew && !this.warrantyToken) {
+    // Generate unique warranty token
     const timestamp = Date.now().toString(36);
     const random = Math.random().toString(36).substr(2, 5);
     this.warrantyToken = `WT${timestamp}${random}`.toUpperCase();
