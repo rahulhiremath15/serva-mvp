@@ -1,220 +1,133 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom'; // Uses modern hooks
 import { useAuth } from '../context/AuthContext';
 
 const TrackPage = () => {
+  const location = useLocation();
   const [searchParams] = useSearchParams();
   const { token } = useAuth();
+
   const [bookingId, setBookingId] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
   const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState(null);
 
-  const handleTrack = useCallback(async (id = null) => {
-    const rawId = id || bookingId;
-    const trackingId = rawId ? rawId.toString().trim().toUpperCase() : '';
-    
-    if (!trackingId) {
-      setError('Please enter a booking ID');
-      return;
-    }
-
-    setIsLoading(true);
-    setError('');
-    setTrackingResult(null);
-
+  // Helper: Safe Date Formatting
+  const formatDate = (dateString) => {
+    if (!dateString) return 'N/A';
     try {
-      // Call real API instead of using dummy data
-      const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
-      console.log('Tracking booking ID:', trackingId);
-      const response = await fetch(`${apiUrl}/api/v1/bookings/${trackingId}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`
-        }
-      });
-      console.log('Track response status:', response.status);
-      
-      if (!response.ok) {
-        if (response.status === 404) {
-          setError('Booking ID not found. Please check your booking ID and try again.');
-        } else {
-          setError('Failed to track booking. Please try again later.');
-        }
-        setIsLoading(false);
-        return;
-      }
-
-      const result = await response.json();
-      console.log('Track result:', result);
-      
-      if (result.success) {
-        setTrackingResult(result.booking);
-      } else {
-        setError(result.message || 'Failed to track booking.');
-      }
-    } catch (error) {
-      console.error('Error tracking booking:', error);
-      setError('Network error. Please check your connection and try again.');
-    } finally {
-      setIsLoading(false);
+      return new Date(dateString).toLocaleDateString();
+    } catch (e) {
+      return 'Invalid Date';
     }
-  }, [token, bookingId]);
+  };
 
-  // Auto-search when URL has ID parameter
+  // Auto-fetch from URL (e.g., /track?id=BK-123)
   useEffect(() => {
     const urlId = searchParams.get('id');
     if (urlId) {
-      setBookingId(urlId); // Set the input field
-      handleTrack(urlId);  // Trigger the search function immediately
+      setBookingId(urlId);
+      handleTrack(urlId);
     }
-  }, [searchParams, handleTrack]);
+  }, [searchParams]);
 
-  const formatTime = (timeString) => {
-    if (!timeString) return 'Pending';
-    const date = new Date(timeString);
-    return date.toLocaleString('en-US', {
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  };
+  const handleTrack = useCallback(async (idToTrack = bookingId) => {
+    if (!idToTrack) return;
 
-  const getStatusColor = (status) => {
-    switch (status) {
-      case 'completed':
-        return 'bg-green-100 text-green-700';
-      case 'in_progress':
-        return 'bg-blue-100 text-blue-700';
-      case 'assigned':
-        return 'bg-yellow-100 text-yellow-700';
-      default:
-        return 'bg-gray-100 text-gray-700';
+    setIsLoading(true);
+    setError(null);
+    setTrackingResult(null);
+    try {
+      const response = await fetch(`https://serva-backend.onrender.com/api/v1/bookings/${idToTrack}`, {
+        headers: {
+          'Authorization': token ? `Bearer ${token}` : '',
+          'Content-Type': 'application/json'
+        }
+      });
+      const data = await response.json();
+      if (response.ok && data.success) {
+        setTrackingResult(data.booking);
+      } else {
+        setError(data.message || 'Booking not found. Please check the ID.');
+      }
+    } catch (err) {
+      console.error('Tracking Error:', err);
+      setError('Failed to connect to server. Please try again later.');
+    } finally {
+      setIsLoading(false);
     }
-  };
-
-  const getDeviceIcon = (deviceType) => {
-    return deviceType === 'Smartphone' ? '📱' : '💻';
-  };
+  }, [bookingId, token]);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8 px-4">
       <div className="max-w-4xl mx-auto">
-        {/* Header */}
-        <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 mb-2">Track Your Repair</h1>
-          <p className="text-gray-600">Enter your booking ID to check the status of your device repair</p>
+        <h1 className="text-3xl font-bold text-center mb-8 text-gray-900">Track Your Repair</h1>
+        
+        {/* Search Bar */}
+        <div className="flex gap-4 mb-8 max-w-xl mx-auto">
+          <input
+            type="text"
+            value={bookingId}
+            onChange={(e) => setBookingId(e.target.value)}
+            placeholder="Enter Booking ID (e.g., BK-789...)"
+            className="flex-1 p-3 border rounded-lg shadow-sm focus:ring-2 focus:ring-blue-500 outline-none"
+          />
+          <button
+            onClick={() => handleTrack(bookingId)}
+            disabled={isLoading}
+            className="bg-blue-600 text-white px-6 py-3 rounded-lg hover:bg-blue-700 disabled:opacity-50 font-medium transition-colors"
+          >
+            {isLoading ? 'Searching...' : 'Track Repair'}
+          </button>
         </div>
 
-        {/* Tracking Form */}
-        <div className="bg-white rounded-lg shadow-md p-6 mb-8">
-          <div className="flex flex-col sm:flex-row gap-4">
-            <input
-              type="text"
-              value={bookingId}
-              onChange={(e) => setBookingId(e.target.value)}
-              placeholder="Enter Booking ID (e.g., BK001)"
-              className="flex-1 px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-brand focus:border-transparent"
-              onKeyPress={(e) => e.key === 'Enter' && handleTrack()}
-            />
-            <button
-              onClick={handleTrack}
-              disabled={isLoading || !bookingId.trim()}
-              className={`px-6 py-3 rounded-lg font-semibold transition-colors ${
-                isLoading || !bookingId.trim()
-                  ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
-                  : 'bg-brand text-white hover:bg-opacity-90'
-              }`}
-            >
-              {isLoading ? (
-                <div className="flex items-center">
-                  <svg className="animate-spin h-5 w-5 mr-2" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Tracking...
-                </div>
-              ) : (
-                'Track Repair'
-              )}
-            </button>
+        {/* Error State */}
+        {error && (
+          <div className="bg-red-50 border border-red-200 text-red-700 px-6 py-4 rounded-lg mb-8 text-center">
+            {error}
           </div>
+        )}
 
-          {error && (
-            <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
-              <p className="text-sm text-red-600">{error}</p>
+        {/* Loading State */}
+        {isLoading && (
+          <div className="text-center py-12 text-gray-500">
+            Finding your repair...
+          </div>
+        )}
+
+        {/* Results State */}
+        {trackingResult && !isLoading && (
+          <div className="bg-white rounded-xl shadow-lg overflow-hidden border border-gray-100">
+            <div className="bg-gray-50 px-6 py-4 border-b border-gray-100 flex justify-between items-center">
+              <span className="font-semibold text-gray-700">Booking ID: {trackingResult.bookingId || trackingResult._id}</span>
+              <span className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm font-medium">
+                {trackingResult.status?.toUpperCase() || 'PENDING'}
+              </span>
             </div>
-          )}
-        </div>
-
-        {/* Tracking Result */}
-        {trackingResult && (
-          <div className="bg-white rounded-lg shadow-md overflow-hidden">
-            {/* Status Header */}
-            <div className="bg-gradient-to-r from-brand to-blue-600 text-white p-6">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-4">
-                  <span className="text-3xl">{getDeviceIcon(trackingResult.deviceType)}</span>
-                  <div>
-                    <h2 className="text-2xl font-bold">{trackingResult.id}</h2>
-                    <p className="opacity-90">{trackingResult.deviceModel}</p>
-                  </div>
-                </div>
-                <div className="text-right">
-                  <span className={`px-3 py-1 rounded-full text-sm font-medium ${getStatusColor(trackingResult.status)}`}>
-                    {trackingResult.status.replace('_', ' ').toUpperCase()}
-                  </span>
+            <div className="p-6 grid md:grid-cols-2 gap-8">
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">Device Details</h3>
+                <div className="space-y-3 text-gray-600">
+                  <p><span className="font-medium text-gray-900">Device:</span> {trackingResult.deviceType}</p>
+                  <p><span className="font-medium text-gray-900">Issue:</span> {trackingResult.issue}</p>
+                  <p><span className="font-medium text-gray-900">Received:</span> {formatDate(trackingResult.createdAt)}</p>
                 </div>
               </div>
-            </div>
-
-            {/* Device Info */}
-            <div className="p-6 border-b">
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Issue</div>
-                  <div className="text-gray-900 break-words">{trackingResult.issue}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Technician</div>
-                  <div className="text-gray-900 break-words">{trackingResult.technician}</div>
-                </div>
-                <div className="min-w-0">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Est. Completion</div>
-                  <div className="text-gray-900 break-words">{formatTime(trackingResult.estimatedCompletion)}</div>
-                </div>
-              </div>
-            </div>
-
-            {/* Timeline */}
-            <div className="p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">Repair Timeline</h3>
-              <div className="space-y-4">
-                {trackingResult.timeline.map((item, index) => (
-                  <div key={item.step} className="flex items-start space-x-3 sm:space-x-4">
-                    <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                      item.completed 
-                        ? 'bg-green-100 text-green-600' 
-                        : 'bg-gray-100 text-gray-400'
-                    }`}>
-                      {item.completed ? (
-                        <svg className="w-4 h-4" fill="currentColor" viewBox="0 0 20 20">
-                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd"></path>
-                        </svg>
-                      ) : (
-                        <span className="text-xs font-medium">{item.step}</span>
-                      )}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className={`font-medium break-words ${
-                        item.completed ? 'text-gray-900' : 'text-gray-500'
-                      }`}>
-                        {item.title}
-                      </div>
-                      <div className="text-sm text-gray-500 mt-1">{formatTime(item.time)}</div>
-                    </div>
+              <div>
+                <h3 className="text-lg font-semibold mb-4 text-gray-800">Status Update</h3>
+                <div className="relative pt-2">
+                  <div className="overflow-hidden h-2 mb-4 text-xs flex rounded bg-gray-200">
+                    <div
+                      style={{ width: trackingResult.status === 'completed' ? '100%' : trackingResult.status === 'in-progress' ? '50%' : '10%' }}
+                      className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-blue-500 transition-all duration-500"
+                    ></div>
                   </div>
-                ))}
+                  <p className="text-sm text-gray-500 text-center">
+                    {trackingResult.status === 'completed' ? 'Repair Completed' :
+                     trackingResult.status === 'in-progress' ? 'Technician Working' :
+                     'Awaiting Technician'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
