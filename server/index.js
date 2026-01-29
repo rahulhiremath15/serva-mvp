@@ -13,6 +13,7 @@ const { authenticateToken, optionalAuth } = require('./middleware/auth');
 const authRoutes = require('./routes/auth');
 const servicesRoutes = require('./routes/services');
 const { bookingUtils } = require('./utils/dataManager');
+const Booking = require('./models/Booking');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -330,20 +331,27 @@ app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
     console.log('User authenticated:', !!req.user);
     
     const { id } = req.params;
-    const userId = req.user.id;
+    const userId = req.user._id; // Use _id for MongoDB
     console.log('Fetching booking:', id, 'for user:', userId);
     
-    const bookings = bookingUtils.readBookings();
-    
-    // Find booking that belongs to the authenticated user
-    const booking = bookings.find(b => b.bookingId === id.toUpperCase() && b.userId === userId);
+    // Try finding by custom bookingId first, then by MongoDB _id
+    let booking;
+    // Check if it looks like a Mongo ID or a custom ID
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      booking = await Booking.findById(id).populate('user', 'firstName lastName email phone');
+    } else {
+      booking = await Booking.findOne({ bookingId: id }).populate('user', 'firstName lastName email phone');
+    }
     
     if (!booking) {
-      console.log('Booking not found or access denied');
-      return res.status(404).json({
-        success: false,
-        message: 'Booking not found or access denied'
-      });
+      console.log('Booking not found');
+      return res.status(404).json({ success: false, message: 'Booking not found' });
+    }
+    
+    // Verify the booking belongs to the authenticated user
+    if (booking.user._id.toString() !== userId.toString()) {
+      console.log('Access denied: booking belongs to different user');
+      return res.status(403).json({ success: false, message: 'Access denied' });
     }
 
     // Generate mock timeline based on creation date and status
@@ -351,7 +359,7 @@ app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
     
     // Return full booking object with timeline
     const bookingWithTimeline = {
-      ...booking,
+      ...booking.toObject(),
       timeline,
       id: booking.bookingId,
       deviceModel: booking.deviceType === 'smartphone' ? 'iPhone 13' : 'MacBook Pro 2021',
