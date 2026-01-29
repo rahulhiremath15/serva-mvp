@@ -1,7 +1,9 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
+  const navigate = useNavigate();
   const [formData, setFormData] = useState({
     email: '',
     password: ''
@@ -32,7 +34,12 @@ const LoginPage = () => {
     setIsSubmitting(true);
     
     try {
-      await login(formData.email, formData.password);
+      const result = await login(formData.email, formData.password);
+      
+      if (result.success) {
+        // Redirect to homepage after successful login
+        navigate('/');
+      }
     } finally {
       setIsSubmitting(false);
     }

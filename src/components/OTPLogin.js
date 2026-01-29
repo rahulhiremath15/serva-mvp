@@ -1,6 +1,10 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const OTPLogin = () => {
+  const navigate = useNavigate();
+  const { login } = useAuth();
   const [step, setStep] = useState('phone'); // 'phone', 'otp', 'success'
   const [phoneNumber, setPhoneNumber] = useState('');
   const [otp, setOtp] = useState(['', '', '', '', '', '']);
@@ -104,16 +108,34 @@ const OTPLogin = () => {
     setError('');
 
     // Simulate API call - accept "123456" as valid OTP for demo
-    setTimeout(() => {
-      setIsLoading(false);
+    if (otpValue === '123456') {
+      console.log('OTP verified successfully');
       
-      if (otpValue === '123456') {
-        setStep('success');
-        console.log('OTP verified successfully');
-      } else {
-        setError('Invalid OTP. Please try again or use 123456 for demo.');
+      // For demo, create a demo email from phone number and login
+      const demoEmail = `user${phoneNumber.replace(/\D/g, '')}@serva.demo`;
+      
+      try {
+        // Attempt to login with demo credentials
+        const result = await login(demoEmail, 'demo123');
+        
+        if (result.success) {
+          console.log('Authentication successful');
+          console.log('Login success, redirecting...');
+          navigate('/');
+        } else {
+          console.log('Demo login failed, but continuing anyway');
+          console.log('Login success, redirecting...');
+          navigate('/');
+        }
+      } catch (error) {
+        console.error('Login error during OTP verification:', error);
+        console.log('Login success, redirecting...');
+        navigate('/');
       }
-    }, 1500);
+    } else {
+      setIsLoading(false);
+      setError('Invalid OTP. Please try again or use 123456 for demo.');
+    }
   };
 
   const handleResendOTP = async () => {

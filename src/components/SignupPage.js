@@ -83,7 +83,7 @@ const SignupPage = () => {
       const result = await register(userData);
       
       if (result.success) {
-        // Redirect to home page after successful signup
+        // Redirect to homepage after successful signup
         navigate('/');
       }
     } finally {

@@ -23,6 +23,9 @@ const SuccessPage = () => {
   }
 
   const { bookingId, deviceType, issue, preferredTime } = bookingData;
+  
+  // Ensure bookingId is a string for URL navigation
+  const trackingId = bookingId?.bookingId || bookingId?._id || bookingId?.id || bookingId;
 
   return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center px-4">
@@ -47,7 +50,7 @@ const SuccessPage = () => {
           <div className="space-y-3">
             <div className="flex justify-between">
               <span className="text-gray-600">Booking ID:</span>
-              <span className="font-mono font-semibold text-brand">{bookingId}</span>
+              <span className="font-mono font-semibold text-brand">{trackingId}</span>
             </div>
             
             <div className="flex justify-between">
@@ -72,7 +75,7 @@ const SuccessPage = () => {
         {/* Action Buttons */}
         <div className="space-y-3">
           <Link
-            to={`/track?id=${bookingId}`}
+            to={`/track?id=${trackingId}`}
             className="w-full block px-6 py-3 bg-brand text-white rounded-lg hover:bg-opacity-90 transition-colors font-medium"
           >
             Track Repair

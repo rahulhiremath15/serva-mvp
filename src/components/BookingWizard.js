@@ -118,20 +118,21 @@ const BookingWizard = () => {
       console.log('Response headers:', response.headers);
 
       if (response.ok) {
-        const result = await response.json();
-        console.log('Success response:', result);
+        const data = await response.json();
+        console.log('Success response:', data);
         
-        // Navigate to success page with booking data
-        navigate('/success', { 
-          state: { 
-            bookingData: result.booking || {
-              bookingId: result.bookingId,
-              deviceType: bookingData.deviceType,
-              issue: bookingData.issue,
-              preferredTime: bookingData.preferredTime
-            }
-          } 
-        });
+        // Extract ID from the nested 'booking' object
+        // Try the custom ID first (BK...), then the MongoDB ID (_id)
+        const trackingId = data.booking.bookingId || data.booking._id || data.booking.id;
+        
+        console.log('Redirecting to track with ID:', trackingId); // Debug log
+        
+        if (trackingId) {
+           navigate(`/track?id=${trackingId}`);
+        } else {
+           // Fallback if ID is missing
+           navigate('/repairs'); 
+        }
         
         // Reset form
         setCurrentStep(1);
@@ -144,6 +145,16 @@ const BookingWizard = () => {
           address: '',
         });
       } else {
+        // Check for 403 Unauthorized (expired/invalid token)
+        if (response.status === 403) {
+          // Clear expired authentication data
+          localStorage.removeItem('token');
+          localStorage.removeItem('user');
+          
+          window.location.href = '/login';
+          return;
+        }
+        
         const errorData = await response.json().catch(() => ({}));
         console.error('Server error response:', errorData);
         alert(`Booking failed: ${errorData.message || 'Server error. Please try again.'}`);
