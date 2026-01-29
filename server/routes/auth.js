@@ -177,20 +177,20 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
     console.log('Password validation result:', isPasswordValid);
     
     if (!isPasswordValid) {
-      console.log('Password validation failed for user:', user.id);
+      console.log('Password validation failed for user:', user._id);
       return res.status(401).json({
         success: false,
         message: 'Invalid email or password'
       });
     }
 
-    console.log('Login successful for user:', user.id);
+    console.log('Login successful for user:', user._id);
 
     // Generate token
     const token = generateToken(user);
 
     // Update last login
-    userUtils.updateUser(user.id, { lastLoginAt: new Date().toISOString() });
+    userUtils.updateUser(user._id, { lastLoginAt: new Date().toISOString() });
 
     // Return success response
     res.status(200).json({
@@ -198,12 +198,13 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
       message: 'Login successful',
       data: {
         user: {
-          id: user.id,
+          id: user._id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
           phone: user.phone,
-          role: user.role,
+          isActive: user.isActive,
+          isAdmin: user.isAdmin,
           createdAt: user.createdAt
         },
         token
@@ -239,8 +240,8 @@ router.get('/me', authenticateToken, (req, res) => {
         firstName: req.user.firstName,
         lastName: req.user.lastName,
         phone: req.user.phone,
-        role: req.user.role,
-        createdAt: req.user.createdAt
+        isActive: req.user.isActive,
+        isAdmin: req.user.isAdmin
       }
     }
   });

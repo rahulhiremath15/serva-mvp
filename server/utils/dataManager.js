@@ -25,7 +25,7 @@ const userUtils = {
         phone: userData.phone ? userData.phone.trim() : ''
       });
 
-      return { success: true, user: newUser.toObject() };
+      return { success: true, user: newUser };
     } catch (error) {
       console.error('Error creating user:', error);
       if (error.code === 11000) {

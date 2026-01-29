@@ -5,7 +5,7 @@ const { userUtils } = require('../utils/dataManager');
 const JWT_SECRET = process.env.JWT_SECRET || 'your-super-secret-jwt-key-change-in-production';
 
 // Authentication middleware
-const authenticateToken = (req, res, next) => {
+const authenticateToken = async (req, res, next) => {
   try {
     const authHeader = req.headers['authorization'];
     
@@ -33,7 +33,7 @@ const authenticateToken = (req, res, next) => {
       });
     }
 
-    jwt.verify(token, JWT_SECRET, (err, user) => {
+    jwt.verify(token, JWT_SECRET, async (err, user) => {
       if (err) {
         console.log('JWT verification error:', err.name, err.message);
         if (err.name === 'JsonWebTokenError') {
@@ -60,16 +60,14 @@ const authenticateToken = (req, res, next) => {
         });
       }
 
+      console.log('Decoded Token Payload:', user);
       if (!user || !user.id) {
-        console.log('Invalid user payload:', user);
-        return res.status(403).json({
-          success: false,
-          message: 'Invalid token payload'
-        });
+        console.error('Token missing ID. Payload:', user);
+        return res.status(403).json({ success: false, message: 'Invalid token payload' });
       }
 
       // Verify user still exists in database
-      const existingUser = userUtils.findUserById(user.id);
+      const existingUser = await userUtils.findUserById(user.id);
       if (!existingUser) {
         return res.status(403).json({
           success: false,
@@ -116,9 +114,9 @@ const optionalAuth = (req, res, next) => {
 const generateToken = (user) => {
   return jwt.sign(
     { 
-      id: user.id,
+      id: user._id || user.id, // Prioritize MongoDB _id
       email: user.email,
-      role: user.role 
+      isAdmin: user.isAdmin || false
     },
     JWT_SECRET,
     { expiresIn: '7d' }
