@@ -154,6 +154,26 @@ const userUtils = {
 
 // Helper functions for booking data management
 const bookingUtils = {
+  // Find user by ID (needed for booking validation)
+  findUserById(userId) {
+    const users = this.readUsers();
+    return users.find(user => user.id === userId);
+  },
+
+  // Read users from file (needed for findUserById)
+  readUsers() {
+    try {
+      if (fs.existsSync(USERS_FILE)) {
+        const data = fs.readFileSync(USERS_FILE, 'utf8');
+        return JSON.parse(data);
+      }
+      return [];
+    } catch (error) {
+      console.error('Error reading users:', error);
+      return [];
+    }
+  },
+
   // Read bookings from file
   readBookings() {
     try {

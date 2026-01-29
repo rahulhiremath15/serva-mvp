@@ -66,9 +66,12 @@ const BookingWizard = () => {
   };
 
   const handleSubmit = async () => {
+    // Get token from context or localStorage fallback
+    const authToken = token || localStorage.getItem('token');
+    
     // Check if user is authenticated
-    if (!token) {
-      alert('Please login to submit a booking');
+    if (!authToken) {
+      alert('Please log in to book a repair');
       navigate('/login');
       return;
     }
@@ -78,6 +81,7 @@ const BookingWizard = () => {
     try {
       console.log('Starting booking submission...');
       console.log('Booking data:', bookingData);
+      console.log('Using token:', authToken ? 'Present' : 'Missing');
       
       const formData = new FormData();
       formData.append('deviceType', bookingData.deviceType);
@@ -95,7 +99,7 @@ const BookingWizard = () => {
 
       const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
       console.log('Sending request to:', `${apiUrl}/api/v1/bookings`);
-      console.log('Auth token available:', !!token);
+      console.log('Auth token available:', !!authToken);
       console.log('FormData contents:');
       for (let [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
@@ -104,7 +108,8 @@ const BookingWizard = () => {
       const response = await fetch(`${apiUrl}/api/v1/bookings`, {
         method: 'POST',
         headers: {
-          'Authorization': `Bearer ${token}`
+          'Authorization': `Bearer ${authToken}`
+          // Note: Do NOT set Content-Type for FormData, let the browser handle it
         },
         body: formData,
       });
