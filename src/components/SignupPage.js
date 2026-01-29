@@ -86,11 +86,11 @@ const SignupPage = () => {
         // Redirect to homepage after successful signup
         navigate('/'); // FORCE REDIRECT immediately
       } else {
-        setError(result.error || 'Registration failed. Please try again.');
+        clearError();
       }
     } catch (err) {
       console.error('Registration error:', err);
-      setError('An error occurred during registration. Please try again.');
+      // Error is handled by useAuth context
     } finally {
       setIsSubmitting(false); // CRITICAL: This ensures spinner ALWAYS stops
     }
