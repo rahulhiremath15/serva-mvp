@@ -1,6 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
 
 // Import database connection
 const connectDB = require('./config/db');
@@ -112,8 +114,9 @@ app.post('/api/test-booking', authenticateToken, async (req, res, next) => {
 
 // Configure multer for file uploads
 const storage = multer.diskStorage({
-  destination: (req, file, cb) => {
-    const uploadDir = 'uploads';
+  destination: function (req, file, cb) {
+    const uploadDir = path.join(__dirname, 'uploads');
+    // Create directory if it doesn't exist
     if (!fs.existsSync(uploadDir)) {
       fs.mkdirSync(uploadDir, { recursive: true });
     }
