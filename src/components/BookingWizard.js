@@ -118,20 +118,23 @@ const BookingWizard = () => {
       console.log('Response headers:', response.headers);
 
       if (response.ok) {
-        const data = await response.json();
-        console.log('Success response:', data);
+        const result = await response.json();
+        console.log('Booking Result:', result);
         
-        // Extract ID from the nested 'booking' object
-        // Try the custom ID first (BK...), then the MongoDB ID (_id)
-        const trackingId = data.booking.bookingId || data.booking._id || data.booking.id;
-        
-        console.log('Redirecting to track with ID:', trackingId); // Debug log
-        
+        // FIX: Extract ID from the nested 'booking' object
+        // Check for 'bookingId' (custom) OR '_id' (MongoDB) OR 'id'
+        const bookingData = result.booking || {};
+        const trackingId = bookingData.bookingId || bookingData._id || result.bookingId;
+
         if (trackingId) {
-           navigate(`/track?id=${trackingId}`);
+          // Clear form and redirect
+          localStorage.removeItem('bookingStep');
+          localStorage.removeItem('bookingData');
+          navigate(`/track?id=${trackingId}`);
         } else {
-           // Fallback if ID is missing
-           navigate('/repairs'); 
+          console.error('ID Missing in response:', result);
+          alert('Booking successful, but could not retrieve ID. Please check "My Bookings".');
+          navigate('/repairs');
         }
         
         // Reset form

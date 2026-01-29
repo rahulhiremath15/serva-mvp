@@ -104,9 +104,8 @@ const OTPLogin = () => {
       return;
     }
 
-    setIsLoading(true);
-    setError('');
-
+    setIsLoading(true); // Start Spinner
+    
     try {
       // Simulate API call - accept "123456" as valid OTP for demo
       if (otpValue === '123456') {
@@ -116,22 +115,22 @@ const OTPLogin = () => {
         const demoEmail = `user${phoneNumber.replace(/\D/g, '')}@serva.demo`;
         
         // Attempt to login with demo credentials
-        const result = await login(demoEmail, 'demo123');
+        const result = await login(demoEmail, 'demo123'); // Your auth context call
         
         if (result.success) {
-          console.log('Authentication successful');
-          navigate('/'); // FORCE REDIRECT immediately
+          // FORCE REDIRECT immediately on success
+          navigate('/');
         } else {
-          setError('Login failed. Please try again.');
+          setError(result.message || 'Login failed');
         }
       } else {
         setError('Invalid OTP. Please try again or use 123456 for demo.');
       }
     } catch (err) {
-      console.error('Login error during OTP verification:', err);
-      setError('An error occurred during login. Please try again.');
+      setError('Network error. Please try again.');
     } finally {
-      setIsLoading(false); // CRITICAL: This ensures spinner ALWAYS stops
+      // CRITICAL: Stop Spinner no matter what happens
+      setIsLoading(false);
     }
   };
 
