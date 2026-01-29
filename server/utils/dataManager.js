@@ -12,7 +12,7 @@ const userUtils = {
       }
 
       // Validate user data
-      const validation = this.validateUserData(userData);
+      const validation = userUtils.validateUserData(userData);
       if (!validation.isValid) {
         return { success: false, message: 'Validation failed', errors: validation.errors };
       }
@@ -101,17 +101,6 @@ const userUtils = {
 
 // Helper functions for booking data management
 const bookingUtils = {
-  // Find user by ID (needed for booking validation)
-  async findUserById(userId) {
-    try {
-      const user = await User.findById(userId);
-      return user;
-    } catch (error) {
-      console.error('Error finding user by ID:', error);
-      return null;
-    }
-  },
-
   // Create booking with user association
   async createBooking(bookingData, userId) {
     try {
@@ -129,7 +118,7 @@ const bookingUtils = {
 
       // Verify user exists
       console.log('Looking for user with ID:', userId);
-      const user = await this.findUserById(userId);
+      const user = await User.findById(userId);
       console.log('User found:', !!user);
       
       if (!user) {
