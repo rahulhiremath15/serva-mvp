@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const TrackPage = () => {
   const location = useLocation();
+  const [searchParams] = useSearchParams();
   const { token } = useAuth();
   const [bookingId, setBookingId] = useState('');
   const [trackingResult, setTrackingResult] = useState(null);
@@ -60,16 +61,14 @@ const TrackPage = () => {
     }
   }, [token, bookingId]);
 
-  // Extract booking ID from URL query parameters
+  // Auto-search when URL has ID parameter
   useEffect(() => {
-    const queryParams = new URLSearchParams(location.search);
-    const id = queryParams.get('id');
-    if (id) {
-      setBookingId(id);
-      // Auto-track if ID is provided in URL
-      handleTrack(id);
+    const urlId = searchParams.get('id');
+    if (urlId) {
+      setBookingId(urlId); // Set the input field
+      handleTrack(urlId);  // Trigger the search function immediately
     }
-  }, [location.search, handleTrack]);
+  }, [searchParams, handleTrack]);
 
   const formatTime = (timeString) => {
     if (!timeString) return 'Pending';

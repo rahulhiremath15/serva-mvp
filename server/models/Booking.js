@@ -6,6 +6,10 @@ const bookingSchema = new mongoose.Schema({
     ref: 'User',
     required: true
   },
+  bookingId: {
+    type: String,
+    unique: true
+  },
   deviceType: {
     type: String,
     required: true,
@@ -67,11 +71,9 @@ const bookingSchema = new mongoose.Schema({
 
 // Generate booking ID and warranty token before saving
 bookingSchema.pre('save', async function() {
-  if (this.isNew && !this.bookingId) {
-    // Generate unique booking ID
-    const timestamp = Date.now().toString(36);
-    const random = Math.random().toString(36).substr(2, 5);
-    this.bookingId = `BK${timestamp}${random}`.toUpperCase();
+  if (!this.bookingId) {
+    // Generate BK-{timestamp}-{random}
+    this.bookingId = 'BK-' + Date.now().toString().slice(-6) + Math.floor(Math.random() * 1000);
   }
   
   if (this.isNew && !this.warrantyToken) {

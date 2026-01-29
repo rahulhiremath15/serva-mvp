@@ -327,52 +327,20 @@ app.get('/api/v1/bookings', authenticateToken, async (req, res, next) => {
 // GET route to retrieve specific booking by ID (protected)
 app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
   try {
-    console.log('GET /api/v1/bookings/:id - Request received');
-    console.log('User authenticated:', !!req.user);
-    
     const { id } = req.params;
-    const userId = req.user._id; // Use _id for MongoDB
-    console.log('Fetching booking:', id, 'for user:', userId);
-    
-    // Try finding by custom bookingId first, then by MongoDB _id
     let booking;
-    // Check if it looks like a Mongo ID or a custom ID
-    if (id.match(/^[0-9a-fA-F]{24}$/)) {
-      booking = await Booking.findById(id).populate('user', 'firstName lastName email phone');
-    } else {
-      booking = await Booking.findOne({ bookingId: id }).populate('user', 'firstName lastName email phone');
+    // 1. Try finding by the custom 'bookingId' (e.g., BK-123456)
+    booking = await Booking.findOne({ bookingId: id }).populate('user', 'firstName lastName email phone');
+    // 2. If not found, and it looks like a MongoDB ID, try that
+    if (!booking && id.match(/^[0-9a-fA-F]{24}$/)) {
+        booking = await Booking.findById(id).populate('user', 'firstName lastName email phone');
     }
-    
     if (!booking) {
-      console.log('Booking not found');
-      return res.status(404).json({ success: false, message: 'Booking not found' });
+        return res.status(404).json({ success: false, message: 'Booking not found' });
     }
-    
-    // Verify the booking belongs to the authenticated user
-    if (booking.user._id.toString() !== userId.toString()) {
-      console.log('Access denied: booking belongs to different user');
-      return res.status(403).json({ success: false, message: 'Access denied' });
-    }
-
-    // Generate mock timeline based on creation date and status
-    const timeline = generateTimeline(booking);
-    
-    // Return full booking object with timeline
-    const bookingWithTimeline = {
-      ...booking.toObject(),
-      timeline,
-      id: booking.bookingId,
-      deviceModel: booking.deviceType === 'smartphone' ? 'iPhone 13' : 'MacBook Pro 2021',
-      technician: booking.technician || 'John Smith',
-      customerName: `${req.user.firstName} ${req.user.lastName}`
-    };
-
-    res.status(200).json({
-      success: true,
-      booking: bookingWithTimeline
-    });
+    res.json({ success: true, booking });
   } catch (error) {
-    console.error('Error retrieving booking:', error);
+    console.error('Error fetching booking:', error);
     next(error);
   }
 });
