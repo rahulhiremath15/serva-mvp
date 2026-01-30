@@ -41,7 +41,7 @@ const ProfilePage = () => {
                 {user.firstName ? user.firstName[0] : 'U'}
               </div>
             </div>
-            <div className="mt-20 flex justify-between items-end">
+            <div className="mt-32 flex justify-between items-end">
               <div>
                 <h1 className="text-3xl font-bold text-gray-900">{user.firstName} {user.lastName}</h1>
                 <p className="text-gray-500 font-medium">{user.email}</p>
@@ -85,7 +85,7 @@ const ProfilePage = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold text-gray-800">Personal Information</h2>
-            <button className="text-blue-600 text-sm font-medium hover:underline">Edit</button>
+            <button disabled className="text-gray-400 text-sm font-medium cursor-not-allowed" title="Coming Soon">Edit Profile (Coming Soon)</button>
           </div>
           <div className="grid md:grid-cols-2 gap-8">
             <div>

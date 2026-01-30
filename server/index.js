@@ -358,109 +358,43 @@ app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
   }
 });
 
-// Serve uploaded files
-app.use('/uploads', express.static(uploadDir));
-
-// 404 handler for undefined routes
-app.use((req, res) => {
-  console.log(`404 - Route not found: ${req.method} ${req.path}`);
-  res.status(404).json({
-    success: false,
-    message: 'Route not found',
-    path: req.path,
-    method: req.method
-  });
-});
-
-// Error handling middleware
-app.use((error, req, res, next) => {
-  console.error('Error occurred:', error);
-  
-  if (error instanceof multer.MulterError) {
-    if (error.code === 'LIMIT_FILE_SIZE') {
-      return res.status(400).json({
-        success: false,
-        message: 'File size too large. Maximum size is 10MB'
-      });
-    }
-    if (error.code === 'LIMIT_FILE_COUNT') {
-      return res.status(400).json({
-        success: false,
-        message: 'Too many files uploaded'
-      });
-    }
-    if (error.code === 'LIMIT_UNEXPECTED_FILE') {
-      return res.status(400).json({
-        success: false,
-        message: 'Unexpected file field'
-      });
-    }
-  }
-  
-  if (error.message === 'Only image files are allowed') {
-    return res.status(400).json({
-      success: false,
-      message: error.message
-    });
-  }
-
-  // Handle JSON parsing errors
-  if (error instanceof SyntaxError && error.status === 400 && 'body' in error) {
-    return res.status(400).json({
-      success: false,
-      message: 'Invalid JSON in request body'
-    });
-  }
-
-  // Handle JWT errors specifically
-  if (error.name === 'JsonWebTokenError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Invalid token'
-    });
-  }
-  
-  if (error.name === 'TokenExpiredError') {
-    return res.status(401).json({
-      success: false,
-      message: 'Token expired'
-    });
-  }
-
-  // Handle validation errors
-  if (error.name === 'ValidationError') {
-    return res.status(400).json({
-      success: false,
-      message: 'Validation failed',
-      details: error.message
-    });
-  }
-});
-
-app.use((err, req, res, next) => {
-  console.error('Server Error:', err); // Log the real error to console
-  res.status(500).json({
-    success: false,
-    message: err.message || 'Internal Server Error'
-  });
-});
-
-// DELETE booking
+// DELETE a booking
 app.delete('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
   try {
-    const booking = await Booking.findOne({
-      _id: req.params.id,
-      // Check req.user._id (Mongoose doc) OR req.user.id (JWT payload)
-      user: req.user._id || req.user.id
-    });
+    const { id } = req.params;
+    // Robustly find the booking using either _id or custom bookingId
+    const query = { user: req.user.id || req.user._id };
+    if (id.match(/^[0-9a-fA-F]{24}$/)) {
+      query._id = id;
+    } else {
+      query.bookingId = id;
+    }
+    const booking = await Booking.findOne(query);
     if (!booking) {
       return res.status(404).json({ success: false, message: 'Booking not found or unauthorized' });
     }
-    await Booking.deleteOne({ _id: req.params.id });
-    res.json({ success: true, message: 'Booking removed' });
-  } catch (error) {
-    next(error);
+    await Booking.deleteOne({ _id: booking._id });
+    res.json({ success: true, message: 'Booking deleted successfully' });
+  } catch (error) { 
+    next(error); 
   }
+});
+
+// Serve uploaded files
+app.use('/uploads', express.static(uploadDir));
+
+// 404 Handler - Always return JSON
+app.use((req, res) => {
+  res.status(404).json({ success: false, message: `Route not found: ${req.method} ${req.url}` });
+});
+
+// Global Error Handler
+app.use((err, req, res, next) => {
+  console.error('🔥 Server Error:', err);
+  res.status(err.status || 500).json({
+    success: false,
+    message: err.message || 'Internal Server Error'
+  });
 });
 
 // Start server
