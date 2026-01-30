@@ -112,19 +112,29 @@ app.post('/api/test-booking', authenticateToken, async (req, res, next) => {
   }
 });
 
-// Configure multer for file uploads
+// Use /tmp for uploads on Render (Ephemeral filesystem)
+const uploadDir = process.env.RENDER ? '/tmp/uploads' : path.join(__dirname, 'uploads');
+// Ensure directory exists immediately
+if (!fs.existsSync(uploadDir)) {
+  try {
+    fs.mkdirSync(uploadDir, { recursive: true });
+    console.log('Created upload directory:', uploadDir);
+  } catch (err) {
+    console.error('Failed to create upload directory:', err);
+  }
+}
+
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    const uploadDir = path.join(__dirname, 'uploads');
-    // Create directory if it doesn't exist
+    // Double check existence before every save
     if (!fs.existsSync(uploadDir)) {
-      fs.mkdirSync(uploadDir, { recursive: true });
+        fs.mkdirSync(uploadDir, { recursive: true });
     }
     cb(null, uploadDir);
   },
-  filename: (req, file, cb) => {
+  filename: function (req, file, cb) {
     const uniqueSuffix = Date.now() + '-' + Math.round(Math.random() * 1E9);
-    cb(null, file.fieldname + '-' + uniqueSuffix + path.extname(file.originalname));
+    cb(null, 'photo-' + uniqueSuffix + path.extname(file.originalname));
   }
 });
 
@@ -349,7 +359,7 @@ app.get('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
 });
 
 // Serve uploaded files
-app.use('/uploads', express.static('uploads'));
+app.use('/uploads', express.static(uploadDir));
 
 // 404 handler for undefined routes
 app.use((req, res) => {
@@ -433,6 +443,24 @@ app.use((error, req, res, next) => {
     message: 'Internal server error',
     ...(process.env.NODE_ENV === 'development' && { error: error.message })
   });
+});
+
+// DELETE booking
+app.delete('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => {
+  try {
+    const booking = await Booking.findOne({
+      _id: req.params.id,
+      // Check req.user._id (Mongoose doc) OR req.user.id (JWT payload)
+      user: req.user._id || req.user.id
+    });
+    if (!booking) {
+      return res.status(404).json({ success: false, message: 'Booking not found or unauthorized' });
+    }
+    await Booking.deleteOne({ _id: req.params.id });
+    res.json({ success: true, message: 'Booking removed' });
+  } catch (error) {
+    next(error);
+  }
 });
 
 // Start server

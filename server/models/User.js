@@ -24,7 +24,8 @@ const userSchema = new mongoose.Schema({
   },
   phone: {
     type: String,
-    trim: true
+    trim: true,
+    match: [/^\+?[\d\s-]{7,15}$/, 'Please enter a valid phone number']
   },
   isAdmin: {
     type: Boolean,

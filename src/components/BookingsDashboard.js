@@ -69,6 +69,26 @@ const BookingsDashboard = () => {
     setIsModalOpen(true);
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking history?')) return;
+    try {
+      const response = await fetch(`https://serva-backend.onrender.com/api/v1/bookings/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (response.ok) {
+        // Remove from local state immediately
+        setBookings(bookings.filter(b => b._id !== id));
+      } else {
+        alert('Failed to delete booking');
+      }
+    } catch (error) {
+      console.error('Error deleting:', error);
+    }
+  };
+
   const closeWarrantyModal = () => {
     setSelectedBooking(null);
     setIsModalOpen(false);
@@ -233,6 +253,12 @@ const BookingsDashboard = () => {
                   <div className="text-right">
                     <div className="text-sm text-gray-500">{formatDate(booking.createdAt)}</div>
                     <div className="text-lg font-semibold text-gray-900">${booking.cost || 0}</div>
+                    <button
+                      onClick={() => handleDelete(booking._id)}
+                      className="text-red-500 hover:text-red-700 text-sm font-medium mt-1"
+                    >
+                      Delete
+                    </button>
                   </div>
                 </div>
 

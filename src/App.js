@@ -10,6 +10,7 @@ import BookingsDashboard from './components/BookingsDashboard';
 import HomePage from './components/HomePage';
 import TrackPage from './components/TrackPage';
 import SuccessPage from './components/SuccessPage';
+import ProfilePage from './components/ProfilePage';
 
 // Navigation component
 const Navigation = () => {
@@ -74,9 +75,9 @@ const Navigation = () => {
                   Track
                 </Link>
                 <div className="flex items-center space-x-2 border-l pl-4">
-                  <span className="text-sm text-gray-600">
+                  <Link to="/profile" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                     Welcome, {user?.firstName}
-                  </span>
+                  </Link>
                   <button
                     onClick={handleLogout}
                     className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
@@ -131,6 +132,11 @@ function App() {
             <Route path="/bookings" element={
               <ProtectedRoute>
                 <BookingsDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/profile" element={
+              <ProtectedRoute>
+                <ProfilePage />
               </ProtectedRoute>
             } />
             <Route path="/technician" element={
