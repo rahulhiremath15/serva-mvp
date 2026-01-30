@@ -206,174 +206,33 @@ function generateTimeline(booking) {
   }
 }
 
-// POST route for booking submissions (protected)
-app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (req, res, next) => {
+// Create a new booking
+app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
-    console.log('POST /api/v1/bookings - Request received');
-    console.log('User authenticated:', !!req.user);
-    console.log('Request body keys:', Object.keys(req.body));
-    console.log('Request body:', req.body);
-    console.log('Uploaded file:', req.file);
+    const bookingData = { ...req.body };
     
-    // Defensive check for user
-    if (!req.user) {
-      console.log('No user found in request - authentication failed');
-      return res.status(401).json({
-        success: false,
-        message: 'Authentication required'
-      });
-    }
-
-    const userId = req.user.id;
-    console.log('User ID:', userId);
-
-    if (!userId) {
-      console.log('User ID is missing from authenticated user');
-      return res.status(401).json({
-        success: false,
-        message: 'Invalid user authentication'
-      });
-    }
-
-    // Extract data from FormData
-    const { deviceType, issue, customIssueDescription, preferredTime, address } = req.body;
+    // 🧹 SANITIZATION: Remove any client-side attempts to set these fields
+    delete bookingData.technician; 
+    delete bookingData.status;
     
-    console.log('Extracted data:', { deviceType, issue, customIssueDescription, preferredTime, address });
-
-    // Validate required fields
-    if (!deviceType || !issue || !preferredTime || !address) {
-      console.log('Validation failed - missing required fields');
-      console.log('Missing fields:', {
-        deviceType: !deviceType,
-        issue: !issue, 
-        preferredTime: !preferredTime,
-        address: !address
-      });
-      return res.status(400).json({
-        success: false,
-        message: 'Missing required fields'
-      });
+    // Add server-controlled fields
+    bookingData.user = req.user.id || req.user._id;
+    bookingData.status = 'pending';
+    bookingData.technician = null; // Explicitly null to prevent "John Smith" errors
+    
+    // Handle file upload if present
+    if (req.file) {
+      // Use the relative path for the frontend
+      bookingData.photo = `/uploads/${req.file.filename}`;
     }
-
-    // Validate custom issue description if "other" is selected
-    if (issue === 'other' && !customIssueDescription) {
-      console.log('Validation failed - missing custom issue description');
-      return res.status(400).json({
-        success: false,
-        message: 'Custom issue description is required when "Other" is selected'
-      });
-    }
-
-    console.log('Creating booking...');
-    // Create booking with user association
-    const bookingDetails = {
-      deviceType,
-      issue,
-      customIssueDescription: issue === 'other' ? customIssueDescription : undefined,
-      preferredTime,
-      address,
-      photo: req.file ? {
-        filename: req.file.filename,
-        originalName: req.file.originalname,
-        path: req.file.path,
-        size: req.file.size
-      } : null
-    };
-
-    const result = await bookingUtils.createBooking(bookingDetails, userId);
-    console.log('Booking creation result:', result);
-
-    if (!result.success) {
-      console.log('Booking creation failed:', result.message);
-      return res.status(500).json({
-        success: false,
-        message: result.message || 'Failed to create booking'
-      });
-    }
-
-    console.log('Booking created successfully');
-    // Return success response
-    res.status(200).json({
-      success: true,
-      message: 'Booking created successfully',
-      bookingId: result.booking.bookingId,
-      booking: {
-        bookingId: result.booking.bookingId,
-        deviceType: result.booking.deviceType,
-        issue: result.booking.issue,
-        preferredTime: result.booking.preferredTime,
-        status: result.booking.status
-      }
-    });
-
-  } catch (error) {
-    console.error('Error creating booking:', error);
-    next(error);
-  }
+const newBooking = new Booking(bookingData);
+await newBooking.save();
+res.status(201).json({ 
+  success: true, 
+  message: 'Booking created successfully', 
+  booking: newBooking 
 });
-
-// AI Visual Diagnosis Route
-app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-
-    // Get device type from body (Multer parses this now)
-    const deviceType = req.body.deviceType || "device";
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
-Return a purely JSON object (no markdown) with these keys:
-- issue: A short title of the technical problem.
-- severity: "Minor", "Moderate", or "Major".
-- advice: One sentence of immediate advice.`;
-    
-    const imagePart = fileToGenerativePart(req.file.path, req.file.mimetype);
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
-
-    // Clean up the JSON string (remove markdown ```json ... ``` if present)
-    const cleanText = text.replace(/```json|```/g, '').trim();
-    const diagnosis = JSON.parse(cleanText);
-    
-    res.json({ success: true, diagnosis });
-    
-    // Optional: Cleanup temp file
-    // fs.unlinkSync(req.file.path);
-
-  } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({ success: false, message: "AI Analysis failed" });
-  }
-});
-
-// Fetch all pending jobs (The Marketplace Feed)
-app.get('/api/v1/technician/available-jobs', authenticateToken, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
-    
-    // Find all pending bookings. We could also filter by the tech's skills here later.
-    const jobs = await Booking.find({ status: 'pending' }).sort({ createdAt: -1 });
-    res.json({ success: true, jobs });
-  } catch (error) { next(error); }
-});
-
-// Accept a job
-app.post('/api/v1/bookings/:id/accept', authenticateToken, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
-
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) return res.status(404).json({ success: false, message: 'Job not found' });
-    if (booking.status !== 'pending') return res.status(400).json({ success: false, message: 'Job already taken' });
-    
-    booking.status = 'in-progress';
-    booking.technician = req.user.id || req.user._id;
-    await booking.save();
-    
-    res.json({ success: true, message: 'Job accepted!', booking });
-  } catch (error) { next(error); }
-});
+} catch (error) { console.error("Booking Error:", error); res.status(500).json({ success: false, message: error.message || "Failed to create booking" }); } });
 
 // GET route to retrieve user's bookings (protected)
 app.get('/api/v1/bookings', authenticateToken, async (req, res, next) => {
@@ -447,6 +306,49 @@ app.delete('/api/v1/bookings/:id', authenticateToken, async (req, res, next) => 
 
 // Serve uploaded files
 app.use('/uploads', express.static(uploadDir));
+
+// --- 🤖 AI ANALYSIS ROUTE (Must be here!) ---
+app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
+    
+    const deviceType = req.body.deviceType || "device";
+    // Initialize Gemini (Ensure GoogleGenerativeAI is imported at top)
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
+Return a purely JSON object (no markdown) with these keys:
+- issue: A short title of the technical problem.
+- severity: "Minor", "Moderate", or "Major".
+- advice: One sentence of immediate advice.`;
+// Convert buffer to Google format
+const imagePart = {
+  inlineData: {
+    data: fs.readFileSync(req.file.path).toString("base64"),
+    mimeType: req.file.mimetype
+  },
+};
+const result = await model.generateContent([prompt, imagePart]);
+const response = await result.response;
+const text = response.text();
+const cleanText = text.replace(/```json|```/g, '').trim();
+res.json({ success: true, diagnosis: JSON.parse(cleanText) });
+
+
+} catch (error) {
+console.error("AI Error:", error);
+res.status(500).json({ success: false, message: "AI Analysis failed" });
+}
+});
+// --- 👨‍🔧 TECHNICIAN ROUTES (Must be here!) --- app.get('/api/v1/technician/available-jobs', authenticateToken, async (req, res) => { try { // Strict Role Check if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' }); const jobs = await Booking.find({ status: 'pending' }).sort({ createdAt: -1 }); res.json({ success: true, jobs }); } catch (error) { console.error(error); res.status(500).json({ success: false, message: "Server Error" }); } });
+
+app.post('/api/v1/bookings/:id/accept', authenticateToken, async (req, res) => { try { if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' }); const booking = await Booking.findById(req.params.id); if (!booking) return res.status(404).json({ success: false, message: 'Job not found' });
+
+booking.status = 'in-progress';
+booking.technician = req.user.id || req.user._id;
+await booking.save();
+res.json({ success: true, message: 'Job accepted!', booking });
+} catch (error) { console.error(error); res.status(500).json({ success: false, message: "Server Error" }); } });
 
 // 404 Handler - Always return JSON
 app.use((req, res) => {

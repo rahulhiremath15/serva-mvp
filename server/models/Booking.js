@@ -46,10 +46,10 @@ const bookingSchema = new mongoose.Schema({
     default: 'pending'
   },
   technician: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
-    default: null  // Explicitly null, NO strings allowed
-  },
+  type: mongoose.Schema.Types.ObjectId,
+  ref: 'User',
+  default: null // <--- This MUST be null. Remove any default strings.
+},
   cost: {
     type: Number,
     default: 0
