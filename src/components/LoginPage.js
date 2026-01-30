@@ -37,8 +37,14 @@ const LoginPage = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        // Redirect to homepage after successful login
-        navigate('/'); // FORCE REDIRECT immediately
+        // Check the role from the response, not just the state
+        const userRole = result.user?.role || 'customer';
+        
+        if (userRole === 'technician') {
+          navigate('/technician-dashboard');
+        } else {
+          navigate('/');
+        }
       } else {
         clearError();
       }
