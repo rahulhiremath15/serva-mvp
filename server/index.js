@@ -312,6 +312,69 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (r
   }
 });
 
+// AI Visual Diagnosis Route
+app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
+  try {
+    if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
+
+    // Get device type from body (Multer parses this now)
+    const deviceType = req.body.deviceType || "device";
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    
+    const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
+Return a purely JSON object (no markdown) with these keys:
+- issue: A short title of the technical problem.
+- severity: "Minor", "Moderate", or "Major".
+- advice: One sentence of immediate advice.`;
+    
+    const imagePart = fileToGenerativePart(req.file.path, req.file.mimetype);
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const text = response.text();
+
+    // Clean up the JSON string (remove markdown ```json ... ``` if present)
+    const cleanText = text.replace(/```json|```/g, '').trim();
+    const diagnosis = JSON.parse(cleanText);
+    
+    res.json({ success: true, diagnosis });
+    
+    // Optional: Cleanup temp file
+    // fs.unlinkSync(req.file.path);
+
+  } catch (error) {
+    console.error("AI Error:", error);
+    res.status(500).json({ success: false, message: "AI Analysis failed" });
+  }
+});
+
+// Fetch all pending jobs (The Marketplace Feed)
+app.get('/api/v1/technician/available-jobs', authenticateToken, async (req, res, next) => {
+  try {
+    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
+    
+    // Find all pending bookings. We could also filter by the tech's skills here later.
+    const jobs = await Booking.find({ status: 'pending' }).sort({ createdAt: -1 });
+    res.json({ success: true, jobs });
+  } catch (error) { next(error); }
+});
+
+// Accept a job
+app.post('/api/v1/bookings/:id/accept', authenticateToken, async (req, res, next) => {
+  try {
+    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
+
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Job not found' });
+    if (booking.status !== 'pending') return res.status(400).json({ success: false, message: 'Job already taken' });
+    
+    booking.status = 'in-progress';
+    booking.technician = req.user.id || req.user._id;
+    await booking.save();
+    
+    res.json({ success: true, message: 'Job accepted!', booking });
+  } catch (error) { next(error); }
+});
+
 // GET route to retrieve user's bookings (protected)
 app.get('/api/v1/bookings', authenticateToken, async (req, res, next) => {
   try {
@@ -399,34 +462,6 @@ app.use((err, req, res, next) => {
   });
 });
 
-// Fetch all pending jobs (The Marketplace Feed)
-app.get('/api/v1/technician/available-jobs', authenticateToken, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
-    
-    // Find all pending bookings. We could also filter by the tech's skills here later.
-    const jobs = await Booking.find({ status: 'pending' }).sort({ createdAt: -1 });
-    res.json({ success: true, jobs });
-  } catch (error) { next(error); }
-});
-
-// Accept a job
-app.post('/api/v1/bookings/:id/accept', authenticateToken, async (req, res, next) => {
-  try {
-    if (req.user.role !== 'technician') return res.status(403).json({ success: false, message: 'Unauthorized' });
-
-    const booking = await Booking.findById(req.params.id);
-    if (!booking) return res.status(404).json({ success: false, message: 'Job not found' });
-    if (booking.status !== 'pending') return res.status(400).json({ success: false, message: 'Job already taken' });
-    
-    booking.status = 'in-progress';
-    booking.technician = req.user.id || req.user._id;
-    await booking.save();
-    
-    res.json({ success: true, message: 'Job accepted!', booking });
-  } catch (error) { next(error); }
-});
-
 // Initialize Gemini AI
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -439,40 +474,6 @@ function fileToGenerativePart(path, mimeType) {
     },
   };
 }
-
-app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
-  try {
-    if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-
-    // Get device type from body (Multer parses this now)
-    const deviceType = req.body.deviceType || "device";
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-    
-    const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
-Return a purely JSON object (no markdown) with these keys:
-- issue: A short title of the technical problem.
-- severity: "Minor", "Moderate", or "Major".
-- advice: One sentence of immediate advice.`;
-    
-    const imagePart = fileToGenerativePart(req.file.path, req.file.mimetype);
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
-
-    // Clean up the JSON string (remove markdown ```json ... ``` if present)
-    const cleanText = text.replace(/```json|```/g, '').trim();
-    const diagnosis = JSON.parse(cleanText);
-    
-    res.json({ success: true, diagnosis });
-    
-    // Optional: Cleanup temp file
-    // fs.unlinkSync(req.file.path);
-
-  } catch (error) {
-    console.error("AI Error:", error);
-    res.status(500).json({ success: false, message: "AI Analysis failed" });
-  }
-});
 
 // Start server
 app.listen(PORT, () => {
