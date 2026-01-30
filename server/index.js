@@ -435,13 +435,13 @@ app.use((error, req, res, next) => {
       details: error.message
     });
   }
+});
 
-  // Default error handler
-  console.error('Unhandled error:', error);
+app.use((err, req, res, next) => {
+  console.error('Server Error:', err); // Log the real error to console
   res.status(500).json({
     success: false,
-    message: 'Internal server error',
-    ...(process.env.NODE_ENV === 'development' && { error: error.message })
+    message: err.message || 'Internal Server Error'
   });
 });
 
