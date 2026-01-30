@@ -8,8 +8,10 @@ const HomePage = () => {
   
   // Redirect Technicians to their Dashboard automatically
   useEffect(() => {
+    // If user is loaded and has the technician role, BOUNCE them to dashboard immediately
     if (user && user.role === 'technician') {
-      navigate('/technician-dashboard');
+      console.log("Technician detected, redirecting...");
+      navigate('/technician-dashboard', { replace: true });
     }
   }, [user, navigate]);
 

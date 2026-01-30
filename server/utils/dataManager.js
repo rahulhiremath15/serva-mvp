@@ -144,7 +144,7 @@ const bookingUtils = {
         preferredTime: (bookingData.preferredTime || '').trim(),
         address: (bookingData.address || '').trim(),
         photo: bookingData.photo || null,
-        technician: 'John Smith',
+        technician: null,  // Explicitly null to match schema default
         cost: Math.floor(Math.random() * 200) + 50,
         deviceModel: `${bookingData.deviceType || 'unknown'} Model`
       });

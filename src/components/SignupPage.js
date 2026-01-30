@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const SignupPage = () => {
@@ -288,6 +288,16 @@ const SignupPage = () => {
               >
                 Sign in instead
               </a>
+            </div>
+
+            <div className="mt-6 text-center border-t pt-4">
+              <p className="text-sm text-gray-600 mb-2">Are you a repair expert?</p>
+              <Link
+                to="/partner-signup"
+                className="text-blue-600 hover:text-blue-800 font-bold text-sm"
+              >
+                Apply to Join as a Technician
+              </Link>
             </div>
           </div>
         </div>

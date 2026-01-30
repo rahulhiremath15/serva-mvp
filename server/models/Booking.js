@@ -47,7 +47,8 @@ const bookingSchema = new mongoose.Schema({
   },
   technician: {
     type: mongoose.Schema.Types.ObjectId,
-    ref: 'User'
+    ref: 'User',
+    default: null  // Explicitly null, NO strings allowed
   },
   cost: {
     type: Number,
