@@ -1,7 +1,18 @@
-import React from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { useAuth } from '../context/AuthContext';
 
 const HomePage = () => {
+  const { user } = useAuth();
+  const navigate = useNavigate();
+  
+  // Redirect Technicians to their Dashboard automatically
+  useEffect(() => {
+    if (user && user.role === 'technician') {
+      navigate('/technician-dashboard');
+    }
+  }, [user, navigate]);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-indigo-100">
       {/* Hero Section */}

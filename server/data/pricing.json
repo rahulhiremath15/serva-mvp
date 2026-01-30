@@ -1,0 +1,225 @@
+{
+  "baseCharges": {
+    "visitFee": 99,
+    "diagnosisFee": 149,
+    "emergencyFee": 299
+  },
+  "services": {
+    "screen-repair": {
+      "basePrice": 999,
+      "priceRange": "₹799-₹2,499",
+      "factors": {
+        "deviceType": {
+          "smartphone": {
+            "multiplier": 1
+          },
+          "tablet": {
+            "multiplier": 1.3
+          },
+          "laptop": {
+            "multiplier": 2.5
+          }
+        },
+        "brand": {
+          "budget": {
+            "multiplier": 0.8
+          },
+          "midrange": {
+            "multiplier": 1
+          },
+          "premium": {
+            "multiplier": 1.5
+          }
+        },
+        "warranty": {
+          "standard": {
+            "multiplier": 1
+          },
+          "extended": {
+            "multiplier": 1.2
+          }
+        }
+      }
+    },
+    "battery-replacement": {
+      "basePrice": 599,
+      "priceRange": "₹399-₹1,999",
+      "factors": {
+        "deviceType": {
+          "smartphone": {
+            "multiplier": 1
+          },
+          "tablet": {
+            "multiplier": 1.4
+          },
+          "laptop": {
+            "multiplier": 2
+          }
+        },
+        "brand": {
+          "budget": {
+            "multiplier": 0.7
+          },
+          "midrange": {
+            "multiplier": 1
+          },
+          "premium": {
+            "multiplier": 1.6
+          }
+        },
+        "batteryType": {
+          "standard": {
+            "multiplier": 1
+          },
+          "fastCharging": {
+            "multiplier": 1.3
+          },
+          "extended": {
+            "multiplier": 1.5
+          }
+        }
+      }
+    },
+    "water-damage": {
+      "basePrice": 1499,
+      "priceRange": "₹999-₹4,999",
+      "factors": {
+        "severity": {
+          "minor": {
+            "multiplier": 0.6
+          },
+          "moderate": {
+            "multiplier": 1
+          },
+          "severe": {
+            "multiplier": 1.8
+          }
+        },
+        "deviceType": {
+          "smartphone": {
+            "multiplier": 1
+          },
+          "tablet": {
+            "multiplier": 1.2
+          },
+          "laptop": {
+            "multiplier": 1.8
+          }
+        }
+      }
+    },
+    "laptop-screen-repair": {
+      "basePrice": 2499,
+      "priceRange": "₹1,999-₹8,999",
+      "factors": {
+        "screenSize": {
+          "13-14": {
+            "multiplier": 0.8
+          },
+          "15-16": {
+            "multiplier": 1
+          },
+          "17+": {
+            "multiplier": 1.4
+          }
+        },
+        "screenType": {
+          "standard": {
+            "multiplier": 1
+          },
+          "touch": {
+            "multiplier": 1.3
+          },
+          "retina": {
+            "multiplier": 1.6
+          }
+        },
+        "brand": {
+          "budget": {
+            "multiplier": 0.7
+          },
+          "midrange": {
+            "multiplier": 1
+          },
+          "premium": {
+            "multiplier": 1.8
+          }
+        }
+      }
+    },
+    "refrigerator-repair": {
+      "basePrice": 899,
+      "priceRange": "₹599-₹2,499",
+      "factors": {
+        "capacity": {
+          "150-250L": {
+            "multiplier": 0.8
+          },
+          "250-400L": {
+            "multiplier": 1
+          },
+          "400L+": {
+            "multiplier": 1.3
+          }
+        },
+        "issueType": {
+          "cooling": {
+            "multiplier": 1.2
+          },
+          "compressor": {
+            "multiplier": 1.8
+          },
+          "general": {
+            "multiplier": 1
+          }
+        }
+      }
+    },
+    "ac-installation": {
+      "basePrice": 1999,
+      "priceRange": "₹1,499-₹4,999",
+      "factors": {
+        "capacity": {
+          "1-1.5T": {
+            "multiplier": 0.8
+          },
+          "2T": {
+            "multiplier": 1
+          },
+          "2.5T+": {
+            "multiplier": 1.3
+          }
+        },
+        "type": {
+          "split": {
+            "multiplier": 1
+          },
+          "window": {
+            "multiplier": 0.7
+          },
+          "portable": {
+            "multiplier": 0.9
+          }
+        },
+        "location": {
+          "ground": {
+            "multiplier": 1
+          },
+          "first": {
+            "multiplier": 1.2
+          },
+          "higher": {
+            "multiplier": 1.5
+          }
+        }
+      }
+    }
+  },
+  "additionalCharges": {
+    "emergencyService": 299,
+    "weekendService": 199,
+    "partsCost": "Actual cost + 20% handling",
+    "warrantyExtension": 299,
+    "sameDayService": 499
+  }
+}

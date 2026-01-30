@@ -400,6 +400,14 @@ const BookingWizard = () => {
               </div>
             </div>
             
+            {isLoading && (
+              <div className="flex flex-col items-center justify-center p-8 bg-blue-50 rounded-xl border border-blue-100 mb-6">
+                <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-blue-600 mb-4"></div>
+                <p className="text-blue-800 font-medium animate-pulse">🤖 Serva AI is analyzing your device...</p>
+                <p className="text-blue-600 text-sm mt-1">Identifying damage and estimating severity</p>
+              </div>
+            )}
+            
             {diagnosis && (
               <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-6 rounded-r-lg">
                 <div className="flex items-center gap-2 mb-2">
