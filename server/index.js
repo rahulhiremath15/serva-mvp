@@ -168,6 +168,36 @@ app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
   }
 });
 
+// 🔍 Get Single Booking (For Tracking)
+// Note: We allow this to be public for tracking, OR require auth. 
+// For now, let's use a flexible lookup (ID or BookingID)
+app.get('/api/v1/bookings/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    console.log(`🔎 Searching for booking: ${id}`);
+    
+    // Search by _id (Mongo) OR bookingId (BK-...)
+    let query;
+    if (mongoose.Types.ObjectId.isValid(id)) {
+      query = { _id: id };
+    } else {
+      query = { bookingId: id };
+    }
+    
+    const booking = await Booking.findOne(query).populate('technician', 'firstName lastName');
+    
+    if (!booking) { 
+      console.log("❌ Booking not found"); 
+      return res.status(404).json({ success: false, message: 'Booking not found' }); 
+    }
+
+    res.json({ success: true, booking });
+  } catch (error) { 
+    console.error("Tracking Error:", error); 
+    res.status(500).json({ success: false, message: "Server Error" }); 
+  }
+});
+
 // ==========================================
 // 🛑 ERROR HANDLERS (MUST BE LAST)
 // ==========================================

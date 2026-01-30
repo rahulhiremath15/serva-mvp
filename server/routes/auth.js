@@ -3,6 +3,7 @@ const bcrypt = require('bcryptjs');
 const validator = require('validator');
 const { userUtils } = require('../utils/dataManager');
 const { generateToken, rateLimit, authenticateToken } = require('../middleware/auth');
+const User = require('../models/User');
 
 const router = express.Router();
 
@@ -78,64 +79,55 @@ const validateLoginInput = (req, res, next) => {
 };
 
 // POST /api/auth/register - User registration
-router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res, next) => {
+router.post('/register', rateLimit(5, 15 * 60 * 1000), validateRegistrationInput, async (req, res) => {
   try {
-    const { email, password, firstName, lastName, phone } = req.body;
+    const { firstName, lastName, email, password, phone, role, technicianProfile } = req.body;
     
-    console.log('Registration request received:', { email, firstName, lastName, phone: phone || 'none' });
-
-    // Check if user already exists
-    const existingUser = await userUtils.findUserByEmail(email);
-    console.log('Existing user check:', !!existingUser);
-    
-    if (existingUser) {
-      return res.status(409).json({
-        success: false,
-        message: 'User already exists with this email'
-      });
+    // Check if user exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ success: false, message: 'User already exists' });
     }
-
+    
     // Hash password
     const saltRounds = 12;
     const hashedPassword = await bcrypt.hash(password, saltRounds);
-    console.log('Password hashed successfully');
-
-    // Create user
-    const result = await userUtils.createUser({
+    
+    // Create user with explicit Role and Profile
+    user = new User({
+      firstName,
+      lastName,
       email,
       password: hashedPassword,
-      firstName: firstName.trim(),
-      lastName: lastName.trim(),
-      phone: phone ? phone.trim() : ''
+      phone,
+      role: role || 'customer', // Allow frontend to set role
+      technicianProfile: technicianProfile || {} // Allow skills to be saved
     });
     
-    console.log('User creation result:', result);
-
-    if (!result.success) {
-      console.error('User creation failed:', result.message);
-      return res.status(500).json({
-        success: false,
-        message: result.message || 'Failed to create user'
-      });
-    }
-
-    // Generate token
-    const token = generateToken(result.user);
-    console.log('Token generated successfully');
-
-    // Return success response
+    await user.save();
+    
+    // Generate Token
+    const token = generateToken(user);
+    
     res.status(201).json({
       success: true,
       message: 'User registered successfully',
-      data: {
-        user: result.user,
-        token
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        role: user.role
       }
     });
-
-  } catch (error) {
-    console.error('Registration error:', error);
-    next(error);
+  } catch (error) { 
+    console.error("Registration Error:", error); 
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    }); 
   }
 });
 
