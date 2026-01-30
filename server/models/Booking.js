@@ -46,8 +46,8 @@ const bookingSchema = new mongoose.Schema({
     default: 'pending'
   },
   technician: {
-    type: String,
-    default: 'John Smith'
+    type: mongoose.Schema.Types.ObjectId,
+    ref: 'User'
   },
   cost: {
     type: Number,

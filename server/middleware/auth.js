@@ -116,6 +116,7 @@ const generateToken = (user) => {
     { 
       id: user._id || user.id, // Prioritize MongoDB _id
       email: user.email,
+      role: user.role || 'customer',
       isAdmin: user.isAdmin || false
     },
     JWT_SECRET,

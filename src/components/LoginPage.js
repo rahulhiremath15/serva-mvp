@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const LoginPage = () => {
@@ -162,6 +162,15 @@ const LoginPage = () => {
               >
                 Create an account
               </a>
+            </div>
+
+            <div className="mt-4 text-center">
+              <Link
+                to="/partner-signup"
+                className="text-sm text-blue-600 hover:text-blue-800 font-medium"
+              >
+                Want to earn? Join as a Pro
+              </Link>
             </div>
           </div>
         </div>

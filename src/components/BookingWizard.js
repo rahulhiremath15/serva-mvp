@@ -7,6 +7,7 @@ const BookingWizard = () => {
   const { token } = useAuth();
   const [currentStep, setCurrentStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
+  const [diagnosis, setDiagnosis] = useState(null);
   const [bookingData, setBookingData] = useState({
     deviceType: '',
     issue: '',
@@ -53,8 +54,35 @@ const BookingWizard = () => {
     '2:00 PM', '3:00 PM', '4:00 PM', '5:00 PM'
   ];
 
-  const handleNext = () => {
+  const handleNext = async () => {
     if (currentStep < steps.length) {
+      // If moving from step 3 (Photo) to step 4 (Schedule) and we have a photo, trigger AI analysis
+      if (currentStep === 3 && bookingData.photo) {
+        try {
+          setIsLoading(true);
+          const formData = new FormData();
+          formData.append('photo', bookingData.photo);
+          formData.append('deviceType', bookingData.deviceType);
+
+          const response = await fetch('https://serva-backend.onrender.com/api/v1/analyze-issue', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${token}`
+            },
+            body: formData
+          });
+
+          const result = await response.json();
+          if (result.success) {
+            setDiagnosis(result.diagnosis);
+          }
+        } catch (error) {
+          console.error('AI analysis failed:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+      
       setCurrentStep(currentStep + 1);
     }
   };
@@ -371,6 +399,21 @@ const BookingWizard = () => {
                 <span className="ml-2 text-gray-900">{bookingData.address}</span>
               </div>
             </div>
+            
+            {diagnosis && (
+              <div className="bg-blue-50 border-l-4 border-blue-500 p-4 my-6 rounded-r-lg">
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-lg">🤖</span>
+                  <h3 className="font-bold text-blue-800 uppercase text-xs tracking-widest">Serva AI Diagnosis</h3>
+                </div>
+                <p className="text-blue-900 font-semibold">{diagnosis.issue}</p>
+                <p className="text-blue-700 text-sm mt-1 italic">"{diagnosis.advice}"</p>
+                <div className="mt-2 inline-block bg-blue-200 text-blue-800 px-2 py-1 rounded text-[10px] font-black uppercase">
+                  Severity: {diagnosis.severity}
+                </div>
+              </div>
+            )}
+            
             <button
               onClick={handleSubmit}
               disabled={isLoading}

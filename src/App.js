@@ -11,6 +11,7 @@ import HomePage from './components/HomePage';
 import TrackPage from './components/TrackPage';
 import SuccessPage from './components/SuccessPage';
 import ProfilePage from './components/ProfilePage';
+import TechnicianSignup from './components/TechnicianSignup';
 
 // Navigation component
 const Navigation = () => {
@@ -120,6 +121,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/signup" element={<SignupPage />} />
+            <Route path="/partner-signup" element={<TechnicianSignup />} />
             <Route path="/track" element={<TrackPage />} />
             <Route path="/success" element={<SuccessPage />} />
             
@@ -140,6 +142,11 @@ function App() {
               </ProtectedRoute>
             } />
             <Route path="/technician" element={
+              <ProtectedRoute>
+                <TechnicianDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/technician-dashboard" element={
               <ProtectedRoute>
                 <TechnicianDashboard />
               </ProtectedRoute>
