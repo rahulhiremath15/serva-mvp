@@ -175,29 +175,24 @@ router.post('/login', rateLimit(10, 15 * 60 * 1000), validateLoginInput, async (
 
     console.log('Login successful for user:', user._id);
 
-    // Generate token
+    // Generate Token
     const token = generateToken(user);
 
     // Update last login
     userUtils.updateUser(user._id, { lastLoginAt: new Date().toISOString() });
 
     // Return success response
-    res.status(200).json({
-      success: true,
-      message: 'Login successful',
-      data: {
-        user: {
-          id: user._id,
-          email: user.email,
-          firstName: user.firstName,
-          lastName: user.lastName,
-          phone: user.phone,
-          isActive: user.isActive,
-          isAdmin: user.isAdmin,
-          createdAt: user.createdAt
-        },
-        token
-      }
+    res.json({ 
+      success: true, 
+      token, 
+      user: { 
+        id: user._id, 
+        firstName: user.firstName, 
+        lastName: user.lastName, 
+        email: user.email, 
+        role: user.role, // <--- CRITICAL: This must be sent
+        technicianProfile: user.technicianProfile 
+      } 
     });
 
   } catch (error) {

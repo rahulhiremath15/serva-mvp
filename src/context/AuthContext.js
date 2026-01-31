@@ -183,15 +183,20 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (data.success) {
-        setAuthToken(data.data.token);
-        // CRITICAL: Save the role to localStorage too, as a backup
-        localStorage.setItem('userRole', data.data.user.role);
+        // 1. Force Save to LocalStorage (Persist across refresh)
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userRole', data.user.role); 
         
+        // 2. Update State using dispatch
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
-          payload: data.data
+          payload: {
+            user: data.user,
+            token: data.token
+          }
         });
-        return { success: true, user: data.data.user };
+        
+        return { success: true, user: data.user };
       } else {
         dispatch({ 
           type: AUTH_ACTIONS.LOGIN_FAILURE, 

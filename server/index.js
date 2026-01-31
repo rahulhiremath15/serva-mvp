@@ -43,50 +43,57 @@ app.use('/uploads', express.static(uploadDir));
 // 🚀 PRIORITY ROUTES (AI & TECHNICIAN)
 // ==========================================
 
-// 🤖 AI Analysis Route
+// 💥 NUKE DB ROUTE (Accessible via Browser)
+app.get('/api/v1/nuke-db', async (req, res) => {
+  try {
+    await User.deleteMany({});
+    await Booking.deleteMany({});
+    res.send("<h1>💥 DATABASE WIPED. Please Sign Up Again.</h1>");
+  } catch (e) {
+    res.send("Error: " + e.message);
+  }
+});
+
+// 🤖 AI Route (Fail-Safe Version)
 app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
+    // 1. Basic Validation
     if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
 
-    // 1. Verify API Key is loaded
-    if (!process.env.GEMINI_API_KEY) {
-      console.error("❌ Critical: GEMINI_API_KEY is missing from process.env");
-      return res.status(500).json({ success: false, message: "Server Misconfiguration: No AI Key" });
+    // 2. Try Google AI
+    try {
+      if (!process.env.GEMINI_API_KEY) throw new Error("No API Key");
+      
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      
+      const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
+      const imagePart = {
+        inlineData: {
+          data: fs.readFileSync(req.file.path).toString("base64"),
+          mimeType: req.file.mimetype
+        },
+      };
+      const result = await model.generateContent([prompt, imagePart]);
+      const text = result.response.text().replace(/```json|```/g, '').trim();
+      
+      // Success!
+      return res.json({ success: true, diagnosis: JSON.parse(text) });
+    } catch (aiError) {
+      console.error("⚠️ AI Failed, switching to Manual Mode:", aiError.message);
+      // 3. FALLBACK: Do not crash. Return a generic diagnosis.
+      return res.json({
+        success: true, 
+        diagnosis: {
+          issue: "Assessment Pending",
+          severity: "Moderate",
+          advice: "Our technician will inspect this device in person."
+        }
+      });
     }
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    // 2. Use the stable, pinned model version to avoid ambiguity
-    // If this fails, the catch block will list available models.
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-
-    const deviceType = req.body.deviceType || "device";
-    const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
-Return a purely JSON object (no markdown) with these keys:
-- issue: A short title of the technical problem.
-- severity: "Minor", "Moderate", or "Major".
-- advice: One sentence of immediate advice.`;
-    const imagePart = {
-      inlineData: {
-        data: fs.readFileSync(req.file.path).toString("base64"),
-        mimeType: req.file.mimetype
-      },
-    };
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text();
-    const cleanText = text.replace(/```json|```/g, '').trim();
-    res.json({ success: true, diagnosis: JSON.parse(cleanText) });
-
-  } catch (error) { 
-    console.error("🔥 AI Analysis Failed:", error.message);
-
-    // 3. AUTO-DEBUGGER: If the model name is wrong, log what IS available
-    if (error.message.includes("404") || error.message.includes("not found")) {
-      console.log("⚠️ Attempting to list available models for debugging...");
-      // This is a placeholder log to remind us to check the Google AI Studio console
-      // if the specific model name 'gemini-1.5-flash' is rejected for your API Key.
-    }
-    res.status(500).json({ success: false, message: "AI Service Error", error: error.message });
+  } catch (serverError) { 
+    console.error("🔥 Server Error:", serverError); 
+    res.status(500).json({ success: false, message: "Server Error" }); 
   }
 });
 
