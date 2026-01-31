@@ -12,6 +12,7 @@ import TrackPage from './components/TrackPage';
 import SuccessPage from './components/SuccessPage';
 import ProfilePage from './components/ProfilePage';
 import TechnicianSignup from './components/TechnicianSignup';
+import TechnicianJobs from './components/TechnicianJobs';
 
 // Navigation component
 const Navigation = () => {
@@ -51,22 +52,47 @@ const Navigation = () => {
                 >
                   Home
                 </Link>
-                <Link
-                  to="/book"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive('/book') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  Book Service
-                </Link>
-                <Link
-                  to="/bookings"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive('/bookings') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  My Bookings
-                </Link>
+                
+                {user?.role === 'technician' ? (
+                  <>
+                    <Link
+                      to="/technician-dashboard"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive('/technician-dashboard') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                    >
+                      Job Feed
+                    </Link>
+                    <Link
+                      to="/my-jobs"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive('/my-jobs') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                    >
+                      My Jobs
+                    </Link>
+                  </>
+                ) : (
+                  <>
+                    <Link
+                      to="/book"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive('/book') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                    >
+                      Book Service
+                    </Link>
+                    <Link
+                      to="/bookings"
+                      className={`px-3 py-2 rounded-md text-sm font-medium ${
+                        isActive('/bookings') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
+                      }`}
+                    >
+                      My Bookings
+                    </Link>
+                  </>
+                )}
+                
                 <Link
                   to="/track"
                   className={`px-3 py-2 rounded-md text-sm font-medium ${
@@ -149,6 +175,11 @@ function App() {
             <Route path="/technician-dashboard" element={
               <ProtectedRoute>
                 <TechnicianDashboard />
+              </ProtectedRoute>
+            } />
+            <Route path="/my-jobs" element={
+              <ProtectedRoute>
+                <TechnicianJobs />
               </ProtectedRoute>
             } />
           </Routes>

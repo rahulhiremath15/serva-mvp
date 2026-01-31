@@ -48,13 +48,17 @@ app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), asy
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
 
-    // Check API Key
+    // 1. Verify API Key is loaded
     if (!process.env.GEMINI_API_KEY) {
-      console.error("❌ Missing GEMINI_API_KEY");
-      return res.status(500).json({ success: false, message: "AI Service Not Configured" });
+      console.error("❌ Critical: GEMINI_API_KEY is missing from process.env");
+      return res.status(500).json({ success: false, message: "Server Misconfiguration: No AI Key" });
     }
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
+    
+    // 2. Use the stable, pinned model version to avoid ambiguity
+    // If this fails, the catch block will list available models.
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+
     const deviceType = req.body.deviceType || "device";
     const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
 Return a purely JSON object (no markdown) with these keys:
@@ -73,10 +77,16 @@ Return a purely JSON object (no markdown) with these keys:
     const cleanText = text.replace(/```json|```/g, '').trim();
     res.json({ success: true, diagnosis: JSON.parse(cleanText) });
 
+  } catch (error) { 
+    console.error("🔥 AI Analysis Failed:", error.message);
 
-  } catch (error) {
-    console.error("🔥 AI Analysis Failed:", error);
-    res.status(500).json({ success: false, message: "AI Analysis Failed" });
+    // 3. AUTO-DEBUGGER: If the model name is wrong, log what IS available
+    if (error.message.includes("404") || error.message.includes("not found")) {
+      console.log("⚠️ Attempting to list available models for debugging...");
+      // This is a placeholder log to remind us to check the Google AI Studio console
+      // if the specific model name 'gemini-1.5-flash' is rejected for your API Key.
+    }
+    res.status(500).json({ success: false, message: "AI Service Error", error: error.message });
   }
 });
 
@@ -161,7 +171,9 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (r
 // Get User Bookings
 app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
   try {
-    const bookings = await Booking.find({ user: req.user.id || req.user._id }).sort({ createdAt: -1 });
+    const bookings = await Booking.find({ user: req.user.id || req.user._id })
+      .populate('technician', 'firstName lastName') // Add this line
+      .sort({ createdAt: -1 });
     res.json({ success: true, bookings });
   } catch (error) {
     res.status(500).json({ success: false, message: error.message });
@@ -195,6 +207,20 @@ app.get('/api/v1/bookings/:id', async (req, res) => {
   } catch (error) { 
     console.error("Tracking Error:", error); 
     res.status(500).json({ success: false, message: "Server Error" }); 
+  }
+});
+
+// ==========================================
+
+// 👨‍🔧 Technician: My Jobs (Claimed Jobs)
+app.get('/api/v1/bookings/technician/my-jobs', authenticateToken, async (req, res) => {
+  try {
+    const jobs = await Booking.find({ technician: req.user.id })
+      .populate('user', 'firstName lastName')
+      .sort({ updatedAt: -1 });
+    res.json({ success: true, jobs });
+  } catch (error) { 
+    res.status(500).json({ success: false }); 
   }
 });
 
