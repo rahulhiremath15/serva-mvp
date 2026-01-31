@@ -36,16 +36,14 @@ const Navigation = () => {
           <div className="hidden md:flex space-x-8">
             <Link to="/" className="text-gray-600 hover:text-blue-600 font-medium">Home</Link>
             
-            {/* STRICT CHECK: Is this a Technician? */}
-            {user && user.role === 'technician' ? (
+            {/* Check BOTH state and localStorage to ensure stability */}
+            {(user?.role === 'technician' || localStorage.getItem('userRole') === 'technician') ? (
               <>
-                {/* 👨‍🔧 TECHNICIAN VIEW */}
-                <Link to="/technician-dashboard" className="text-blue-600 font-bold">Job Feed</Link>
+                <Link to="/technician-dashboard" className="text-blue-600 font-bold hover:text-blue-800">Job Feed</Link>
                 <Link to="/my-jobs" className="text-gray-600 hover:text-blue-600 font-medium">My Accepted Jobs</Link>
               </>
             ) : (
               <>
-                {/* 👤 CUSTOMER VIEW (Default) */}
                 <Link to="/book" className="text-gray-600 hover:text-blue-600 font-medium">Book Service</Link>
                 <Link to="/bookings" className="text-gray-600 hover:text-blue-600 font-medium">My Bookings</Link>
                 <Link to="/track" className="text-gray-600 hover:text-blue-600 font-medium">Track Repair</Link>

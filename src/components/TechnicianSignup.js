@@ -47,12 +47,14 @@ const TechnicianSignup = () => {
 
       const result = await response.json();
       if (result.success) {
-        // Manually save session
-        // So we manually set localStorage and redirect
+        // 1. HARD SAVE the credentials to LocalStorage
+        // This guarantees other components (like Navbar) can see them immediately
         localStorage.setItem('token', result.token);
-        localStorage.setItem('userRole', 'technician'); // FORCE SAVE
+        localStorage.setItem('userRole', 'technician'); 
         
-        // Force reload to pick up the new role in AuthContext
+        // 2. FORCE A HARD RELOAD
+        // Do NOT use 'navigate'. Use 'window.location.href'.
+        // This forces the App to restart, read the LocalStorage, and render the correct Technician Navbar.
         window.location.href = '/technician-dashboard';
       } else {
         setError(result.message || 'Registration failed');

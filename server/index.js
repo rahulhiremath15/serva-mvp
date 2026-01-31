@@ -39,6 +39,36 @@ const upload = multer({ storage });
 // 4. Static Files
 app.use('/uploads', express.static(uploadDir));
 
+// 📜 Certificate Route (Publicly Accessible)
+app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('user')
+      .populate('technician');
+      
+    if (!booking) return res.send("<h2>Certificate Not Found</h2>");
+    const html = `
+  <div style="font-family: Helvetica, sans-serif; max-width: 800px; margin: 40px auto; padding: 40px; border: 10px solid #2563eb; text-align: center;">
+    <h1 style="color: #2563eb; font-size: 3em; margin-bottom: 0.2em;">Serva</h1>
+    <h2 style="color: #333; margin-top: 0;">Digital Repair Warranty</h2>
+    <hr style="border: 0; border-top: 1px solid #ccc; margin: 30px 0;">
+    
+    <p style="font-size: 1.2em; color: #555;">This certifies that the following device has been repaired by a Serva Certified Pro.</p>
+    
+    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: left;">
+      <p><strong>Device:</strong> ${booking.deviceType} (${booking.issue})</p>
+      <p><strong>Owner:</strong> ${booking.user?.firstName} ${booking.user?.lastName}</p>
+      <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName : 'Pending'}</p>
+      <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+      <p><strong>Ref ID:</strong> ${booking._id}</p>
+    </div>
+    <h3 style="color: #16a34a;">✅ 6-Month Warranty Active</h3>
+  </div>
+`;
+    res.send(html);
+  } catch (e) { res.status(500).send("Error: " + e.message); }
+});
+
 // ==========================================
 // 🚀 PRIORITY ROUTES (AI & TECHNICIAN)
 // ==========================================
@@ -57,43 +87,27 @@ app.get('/api/v1/nuke-db', async (req, res) => {
 // 🤖 AI Route (Fail-Safe Version)
 app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
-    // 1. Basic Validation
     if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-
-    // 2. Try Google AI
-    try {
-      if (!process.env.GEMINI_API_KEY) throw new Error("No API Key");
-      
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
-      
-      const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
-      const imagePart = {
-        inlineData: {
-          data: fs.readFileSync(req.file.path).toString("base64"),
-          mimeType: req.file.mimetype
-        },
-      };
-      const result = await model.generateContent([prompt, imagePart]);
-      const text = result.response.text().replace(/```json|```/g, '').trim();
-      
-      // Success!
-      return res.json({ success: true, diagnosis: JSON.parse(text) });
-    } catch (aiError) {
-      console.error("⚠️ AI Failed, switching to Manual Mode:", aiError.message);
-      // 3. FALLBACK: Do not crash. Return a generic diagnosis.
-      return res.json({
-        success: true, 
-        diagnosis: {
-          issue: "Assessment Pending",
-          severity: "Moderate",
-          advice: "Our technician will inspect this device in person."
-        }
-      });
+    if (!process.env.GEMINI_API_KEY) {
+       // Graceful fallback if key is missing
+       return res.json({ success: true, diagnosis: { issue: "Visual Inspection Required", severity: "Moderate", advice: "Technician will diagnose on-site." } });
     }
-  } catch (serverError) { 
-    console.error("🔥 Server Error:", serverError); 
-    res.status(500).json({ success: false, message: "Server Error" }); 
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    // FIX: Use 'gemini-pro-vision' which is compatible with v1beta API
+    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+
+    const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
+    const imagePart = { inlineData: { data: fs.readFileSync(req.file.path).toString("base64"), mimeType: req.file.mimetype }, };
+
+    const result = await model.generateContent([prompt, imagePart]);
+    const response = await result.response;
+    const text = response.text().replace(/```json|```/g, '').trim();
+    res.json({ success: true, diagnosis: JSON.parse(text) });
+
+  } catch (error) { 
+    console.error("AI Error:", error.message); 
+    // Fallback: Return a valid response so the App DOES NOT CRASH
+    res.json({ success: true, diagnosis: { issue: "Assessment Pending", severity: "Moderate", advice: "Proceed with booking. Diagnosis will be done in-person." } }); 
   }
 });
 
@@ -156,48 +170,6 @@ app.get('/api/v1/bookings/technician/my-jobs', authenticateToken, async (req, re
 // ==========================================
 // 📦 STANDARD ROUTES
 // ==========================================
-
-// 📜 Certificate Generation Route
-app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
-  try {
-    const booking = await Booking.findById(req.params.id)
-      .populate('user', 'firstName lastName')
-      .populate('technician', 'firstName lastName');
-      
-    if (!booking) return res.status(404).send("Certificate not found");
-
-    // HTML Template
-    const html = `
-      <!DOCTYPE html>
-      <html>
-      <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 40px; display: flex; justify-content: center;">
-        <div style="background: white; padding: 40px; border: 2px solid #e5e7eb; border-radius: 12px; max-width: 800px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
-          <div style="text-align: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; margin-bottom: 30px;">
-            <h1 style="color: #2563eb; margin: 0; font-size: 32px;">Serva Digital Warranty</h1>
-            <p style="color: #6b7280; margin-top: 5px;">Certified Repair Document</p>
-          </div>
-          
-          <div style="margin-bottom: 30px;">
-            <p><strong>Certificate ID:</strong> ${booking._id}</p>
-            <p><strong>Issued To:</strong> ${booking.user?.firstName || 'Valued'} ${booking.user?.lastName || 'Customer'}</p>
-            <p><strong>Device:</strong> ${booking.deviceType.toUpperCase()} - ${booking.issue}</p>
-            <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName + ' ' + booking.technician.lastName : 'Serva Certified Pro'}</p>
-          </div>
-          <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; text-align: center;">
-            <h3 style="color: #1e40af; margin: 0;">🛡️ 6-Month Warranty Active</h3>
-            <p style="color: #1e3a8a; margin: 5px 0 0 0; font-size: 14px;">Valid from ${new Date().toLocaleDateString()}</p>
-          </div>
-        </div>
-      </body>
-      </html>
-    `;
-    res.send(html);
-
-  } catch (error) {
-    console.error("Certificate Error:", error);
-    res.status(500).send("Error generating certificate");
-  }
-});
 
 app.use('/api/auth', authRoutes);
 
