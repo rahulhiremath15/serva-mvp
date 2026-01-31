@@ -19,10 +19,6 @@ const Navigation = () => {
   const location = useLocation();
   const { isAuthenticated, user, logout } = useAuth();
   
-  const isActive = (path) => {
-    return location.pathname === path;
-  };
-
   const handleLogout = async () => {
     await logout();
   };
@@ -44,63 +40,32 @@ const Navigation = () => {
           <div className="flex items-center space-x-2 sm:space-x-4">
             {isAuthenticated ? (
               <>
-                <Link
-                  to="/"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive('/') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  Home
-                </Link>
+                <div className="hidden md:flex space-x-8">
+                  <Link to="/" className="text-gray-600 hover:text-blue-600 font-medium">Home</Link>
+                  
+                  {user?.role === 'technician' ? (
+                    <>
+                      {/* 👨‍🔧 Technician Links ONLY */}
+                      <Link to="/technician-dashboard" className="text-gray-600 hover:text-blue-600 font-medium">Job Feed</Link>
+                      <Link to="/my-jobs" className="text-gray-600 hover:text-blue-600 font-medium">My Accepted Jobs</Link>
+                    </>
+                  ) : (
+                    <>
+                      {/* 👤 Customer Links ONLY */}
+                      <Link to="/book" className="text-gray-600 hover:text-blue-600 font-medium">Book Service</Link>
+                      <Link to="/bookings" className="text-gray-600 hover:text-blue-600 font-medium">My Bookings</Link>
+                      <Link to="/track" className="text-gray-600 hover:text-blue-600 font-medium">Track Repair</Link>
+                    </>
+                  )}
+                  
+                  {/* Profile is common for both */}
+                  <Link to="/profile" className="text-gray-600 hover:text-blue-600 font-medium">
+                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
+                      {user?.firstName?.charAt(0) || 'U'}
+                    </div>
+                  </Link>
+                </div>
                 
-                {user?.role === 'technician' ? (
-                  <>
-                    <Link
-                      to="/technician-dashboard"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/technician-dashboard') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                      }`}
-                    >
-                      Job Feed
-                    </Link>
-                    <Link
-                      to="/my-jobs"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/my-jobs') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                      }`}
-                    >
-                      My Jobs
-                    </Link>
-                  </>
-                ) : (
-                  <>
-                    <Link
-                      to="/book"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/book') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                      }`}
-                    >
-                      Book Service
-                    </Link>
-                    <Link
-                      to="/bookings"
-                      className={`px-3 py-2 rounded-md text-sm font-medium ${
-                        isActive('/bookings') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                      }`}
-                    >
-                      My Bookings
-                    </Link>
-                  </>
-                )}
-                
-                <Link
-                  to="/track"
-                  className={`px-3 py-2 rounded-md text-sm font-medium ${
-                    isActive('/track') ? 'bg-brand text-white' : 'text-gray-700 hover:text-gray-900'
-                  }`}
-                >
-                  Track
-                </Link>
                 <div className="flex items-center space-x-2 border-l pl-4">
                   <Link to="/profile" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
                     Welcome, {user?.firstName}

@@ -37,13 +37,16 @@ const LoginPage = () => {
       const result = await login(formData.email, formData.password);
       
       if (result.success) {
-        // Check the role from the response, not just the state
+        // 1. Check the role directly from the response
         const userRole = result.user?.role || 'customer';
         
+        console.log("Login Successful. Role detected:", userRole); // Debug log
+        
+        // 2. Redirect based on Role
         if (userRole === 'technician') {
-          navigate('/technician-dashboard');
+          navigate('/technician-dashboard', { replace: true });
         } else {
-          navigate('/');
+          navigate('/', { replace: true });
         }
       } else {
         clearError();

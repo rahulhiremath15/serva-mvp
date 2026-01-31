@@ -131,6 +131,21 @@ app.post('/api/v1/bookings/:id/accept', authenticateToken, async (req, res) => {
   }
 });
 
+// 👨‍🔧 Technician: My Accepted Jobs (Restored)
+app.get('/api/v1/bookings/technician/my-jobs', authenticateToken, async (req, res) => {
+  try {
+    // Find bookings where the technician field matches the current user
+    const jobs = await Booking.find({ technician: req.user.id || req.user._id })
+      .populate('user', 'firstName lastName phone') // Include customer details
+      .sort({ updatedAt: -1 });
+    
+    res.json({ success: true, jobs });
+  } catch (error) {
+    console.error("My Jobs Error:", error);
+    res.status(500).json({ success: false, message: "Failed to fetch jobs" });
+  }
+});
+
 // ==========================================
 // 📦 STANDARD ROUTES
 // ==========================================
