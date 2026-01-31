@@ -150,6 +150,48 @@ app.get('/api/v1/bookings/technician/my-jobs', authenticateToken, async (req, re
 // 📦 STANDARD ROUTES
 // ==========================================
 
+// 📜 Certificate Generation Route
+app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id)
+      .populate('user', 'firstName lastName')
+      .populate('technician', 'firstName lastName');
+      
+    if (!booking) return res.status(404).send("Certificate not found");
+
+    // HTML Template
+    const html = `
+      <!DOCTYPE html>
+      <html>
+      <body style="font-family: Arial, sans-serif; background-color: #f9fafb; padding: 40px; display: flex; justify-content: center;">
+        <div style="background: white; padding: 40px; border: 2px solid #e5e7eb; border-radius: 12px; max-width: 800px; width: 100%; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+          <div style="text-align: center; border-bottom: 2px solid #f3f4f6; padding-bottom: 20px; margin-bottom: 30px;">
+            <h1 style="color: #2563eb; margin: 0; font-size: 32px;">Serva Digital Warranty</h1>
+            <p style="color: #6b7280; margin-top: 5px;">Certified Repair Document</p>
+          </div>
+          
+          <div style="margin-bottom: 30px;">
+            <p><strong>Certificate ID:</strong> ${booking._id}</p>
+            <p><strong>Issued To:</strong> ${booking.user?.firstName || 'Valued'} ${booking.user?.lastName || 'Customer'}</p>
+            <p><strong>Device:</strong> ${booking.deviceType.toUpperCase()} - ${booking.issue}</p>
+            <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName + ' ' + booking.technician.lastName : 'Serva Certified Pro'}</p>
+          </div>
+          <div style="background-color: #eff6ff; padding: 20px; border-radius: 8px; border: 1px solid #bfdbfe; text-align: center;">
+            <h3 style="color: #1e40af; margin: 0;">🛡️ 6-Month Warranty Active</h3>
+            <p style="color: #1e3a8a; margin: 5px 0 0 0; font-size: 14px;">Valid from ${new Date().toLocaleDateString()}</p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
+    res.send(html);
+
+  } catch (error) {
+    console.error("Certificate Error:", error);
+    res.status(500).send("Error generating certificate");
+  }
+});
+
 app.use('/api/auth', authRoutes);
 
 // Create Booking (Sanitized)

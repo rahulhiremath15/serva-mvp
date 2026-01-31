@@ -97,12 +97,14 @@ export const AuthProvider = ({ children }) => {
       localStorage.setItem('token', token);
     } else {
       localStorage.removeItem('token');
+      localStorage.removeItem('userRole'); // Also clear role on logout
     }
   };
 
   // Load user from token
   const loadUser = useCallback(async () => {
     const token = localStorage.getItem('token');
+    const storedRole = localStorage.getItem('userRole'); // Read backup role
     
     if (!token) {
       dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'No token found' });
@@ -111,6 +113,17 @@ export const AuthProvider = ({ children }) => {
 
     try {
       dispatch({ type: AUTH_ACTIONS.LOAD_USER_START });
+
+      // Optimistically set user with the stored role while we wait for the API
+      if (storedRole) {
+        dispatch({
+          type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
+          payload: {
+            user: { role: storedRole },
+            token
+          }
+        });
+      }
 
       const response = await fetch(`${API_URL}/api/auth/me`, {
         headers: {
@@ -121,6 +134,7 @@ export const AuthProvider = ({ children }) => {
       const data = await response.json();
 
       if (data.success) {
+        // Update with full user data from API
         dispatch({
           type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
           payload: {
@@ -128,13 +142,19 @@ export const AuthProvider = ({ children }) => {
             token
           }
         });
+        // Update stored role with latest from API
+        localStorage.setItem('userRole', data.data.user.role);
       } else {
         dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: data.message });
         setAuthToken(null);
+        localStorage.removeItem('userRole');
       }
     } catch (error) {
-      dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Network error' });
-      setAuthToken(null);
+      // If API fails but we have a stored role, keep the optimistic user
+      if (!storedRole) {
+        dispatch({ type: AUTH_ACTIONS.LOAD_USER_FAILURE, payload: 'Network error' });
+        setAuthToken(null);
+      }
     }
   }, []);
 
@@ -164,11 +184,14 @@ export const AuthProvider = ({ children }) => {
 
       if (data.success) {
         setAuthToken(data.data.token);
+        // CRITICAL: Save the role to localStorage too, as a backup
+        localStorage.setItem('userRole', data.data.user.role);
+        
         dispatch({
           type: AUTH_ACTIONS.LOGIN_SUCCESS,
           payload: data.data
         });
-        return { success: true };
+        return { success: true, user: data.data.user };
       } else {
         dispatch({ 
           type: AUTH_ACTIONS.LOGIN_FAILURE, 
@@ -208,6 +231,9 @@ export const AuthProvider = ({ children }) => {
       const user = data.user || (data.data && data.data.user);
       if (token) {
         setAuthToken(token);
+        // CRITICAL: Save the role to localStorage too, as a backup
+        localStorage.setItem('userRole', user.role);
+        
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
           payload: {

@@ -17,12 +17,8 @@ import TechnicianJobs from './components/TechnicianJobs';
 // Navigation component
 const Navigation = () => {
   const location = useLocation();
-  const { isAuthenticated, user, logout } = useAuth();
+  const { user } = useAuth();
   
-  const handleLogout = async () => {
-    await logout();
-  };
-
   // Don't show navigation on auth pages
   if (location.pathname === '/login' || location.pathname === '/signup') {
     return null;
@@ -37,63 +33,31 @@ const Navigation = () => {
               Serva
             </Link>
           </div>
-          <div className="flex items-center space-x-2 sm:space-x-4">
-            {isAuthenticated ? (
+          <div className="hidden md:flex space-x-8">
+            <Link to="/" className="text-gray-600 hover:text-blue-600 font-medium">Home</Link>
+            
+            {/* STRICT CHECK: Is this a Technician? */}
+            {user && user.role === 'technician' ? (
               <>
-                <div className="hidden md:flex space-x-8">
-                  <Link to="/" className="text-gray-600 hover:text-blue-600 font-medium">Home</Link>
-                  
-                  {user?.role === 'technician' ? (
-                    <>
-                      {/* 👨‍🔧 Technician Links ONLY */}
-                      <Link to="/technician-dashboard" className="text-gray-600 hover:text-blue-600 font-medium">Job Feed</Link>
-                      <Link to="/my-jobs" className="text-gray-600 hover:text-blue-600 font-medium">My Accepted Jobs</Link>
-                    </>
-                  ) : (
-                    <>
-                      {/* 👤 Customer Links ONLY */}
-                      <Link to="/book" className="text-gray-600 hover:text-blue-600 font-medium">Book Service</Link>
-                      <Link to="/bookings" className="text-gray-600 hover:text-blue-600 font-medium">My Bookings</Link>
-                      <Link to="/track" className="text-gray-600 hover:text-blue-600 font-medium">Track Repair</Link>
-                    </>
-                  )}
-                  
-                  {/* Profile is common for both */}
-                  <Link to="/profile" className="text-gray-600 hover:text-blue-600 font-medium">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600">
-                      {user?.firstName?.charAt(0) || 'U'}
-                    </div>
-                  </Link>
-                </div>
-                
-                <div className="flex items-center space-x-2 border-l pl-4">
-                  <Link to="/profile" className="text-sm text-gray-600 hover:text-gray-900 transition-colors">
-                    Welcome, {user?.firstName}
-                  </Link>
-                  <button
-                    onClick={handleLogout}
-                    className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                  >
-                    Logout
-                  </button>
-                </div>
+                {/* 👨‍🔧 TECHNICIAN VIEW */}
+                <Link to="/technician-dashboard" className="text-blue-600 font-bold">Job Feed</Link>
+                <Link to="/my-jobs" className="text-gray-600 hover:text-blue-600 font-medium">My Accepted Jobs</Link>
               </>
             ) : (
               <>
-                <Link
-                  to="/login"
-                  className="px-3 py-2 rounded-md text-sm font-medium text-gray-700 hover:text-gray-900 hover:bg-gray-100"
-                >
-                  Login
-                </Link>
-                <Link
-                  to="/signup"
-                  className="px-4 py-2 rounded-md text-sm font-medium text-white bg-brand hover:bg-opacity-90"
-                >
-                  Sign Up
-                </Link>
+                {/* 👤 CUSTOMER VIEW (Default) */}
+                <Link to="/book" className="text-gray-600 hover:text-blue-600 font-medium">Book Service</Link>
+                <Link to="/bookings" className="text-gray-600 hover:text-blue-600 font-medium">My Bookings</Link>
+                <Link to="/track" className="text-gray-600 hover:text-blue-600 font-medium">Track Repair</Link>
               </>
             )}
+            
+            {/* Profile Link (Always Visible) */}
+            <Link to="/profile">
+              <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center text-blue-600 font-bold">
+                {user?.firstName?.charAt(0) || 'U'}
+              </div>
+            </Link>
           </div>
         </div>
       </div>
