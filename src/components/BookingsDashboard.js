@@ -277,15 +277,15 @@ const BookingsDashboard = () => {
 
                 {/* Technician */}
                 <div className="mb-4">
-                  <div className="text-sm text-gray-600 mt-1">
-                    <span className="font-semibold">Technician: </span>
+                  <div className="mt-2 text-sm">
+                    <span className="font-semibold text-gray-700">Technician: </span>
                     {booking.technician ? (
-                      <span className="text-green-700 font-medium">
+                      <span className="text-green-600 font-medium">
                         {booking.technician.firstName} {booking.technician.lastName}
                       </span>
                     ) : (
-                      <span className="text-yellow-600 italic">
-                        Pending Assignment...
+                      <span className="text-yellow-600 italic bg-yellow-50 px-2 py-0.5 rounded">
+                        Pending Assignment
                       </span>
                     )}
                   </div>

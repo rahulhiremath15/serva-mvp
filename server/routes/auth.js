@@ -366,4 +366,61 @@ router.post('/change-password', async (req, res) => {
   }
 });
 
+// 👨‍🔧 DEDICATED TECHNICIAN REGISTRATION
+router.post('/register-technician', async (req, res) => {
+  try {
+    const { firstName, lastName, email, password, phone, skills } = req.body;
+    
+    // 1. Check if user exists
+    let user = await User.findOne({ email });
+    if (user) {
+      return res.status(400).json({ success: false, message: 'User already exists' });
+    }
+    
+    // 2. FORCE Role to 'technician' (Hardcoded)
+    user = new User({
+      firstName,
+      lastName,
+      email,
+      password, // Mongoose pre-save hook handles hashing usually, or hash here if needed
+      phone,
+      role: 'technician', // <--- FORCED
+      technicianProfile: { 
+        skills: skills || [] 
+      }
+    });
+    
+    // Manual Hash check (just in case your model doesn't auto-hash)
+    if (!user.password.startsWith('$2b$')) {
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        user.password = await bcrypt.hash(password, salt);
+    }
+    
+    await user.save();
+    
+    // 3. Generate Token with correct role
+    const token = generateToken(user);
+    
+    res.status(201).json({
+      success: true,
+      message: 'Technician registered successfully',
+      token,
+      user: {
+        id: user._id,
+        firstName: user.firstName,
+        email: user.email,
+        role: 'technician' // Explicit return
+      }
+    });
+  } catch (error) { 
+    console.error("Tech Registration Error:", error); 
+    res.status(500).json({ 
+      success: false, 
+      message: 'Server Error', 
+      error: error.message 
+    }); 
+  }
+});
+
 module.exports = router;

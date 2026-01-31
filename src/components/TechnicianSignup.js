@@ -1,10 +1,6 @@
 import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../context/AuthContext';
 
 const TechnicianSignup = () => {
-  const navigate = useNavigate();
-  const { register } = useAuth();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -30,18 +26,40 @@ const TechnicianSignup = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (formData.skills.length === 0) return setError('Please select at least one skill');
-
+    
     setIsLoading(true);
+    setError('');
+    
     try {
-      const result = await register({
-        ...formData,
-        role: 'technician',
-        technicianProfile: { skills: formData.skills }
+      // Call the SPECIAL route directly
+      const response = await fetch('https://serva-backend.onrender.com/api/auth/register-technician', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          phone: formData.phone,
+          password: formData.password,
+          skills: formData.skills
+        })
       });
-      if (result.success) navigate('/technician-dashboard');
-      else setError(result.message);
+
+      const result = await response.json();
+      if (result.success) {
+        // Manually save session
+        // So we manually set localStorage and redirect
+        localStorage.setItem('token', result.token);
+        localStorage.setItem('userRole', 'technician'); // FORCE SAVE
+        
+        // Force reload to pick up the new role in AuthContext
+        window.location.href = '/technician-dashboard';
+      } else {
+        setError(result.message || 'Registration failed');
+      }
     } catch (err) {
-      setError('Registration failed. Try again.');
+      console.error(err);
+      setError('Network error. Try again.');
     } finally {
       setIsLoading(false);
     }
