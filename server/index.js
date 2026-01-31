@@ -180,7 +180,57 @@ app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
   }
 });
 
-// 🔍 Get Single Booking (For Tracking)
+// �️ Delete Booking (Restored)
+app.delete('/api/v1/bookings/:id', authenticateToken, async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id);
+    if (!booking) return res.status(404).json({ success: false, message: 'Booking not found' });
+    
+    // Authorization Check: Only the owner can delete
+    if (booking.user.toString() !== req.user.id && booking.user.toString() !== req.user._id) {
+      return res.status(403).json({ success: false, message: 'Unauthorized action' });
+    }
+    
+    await Booking.deleteOne({ _id: req.params.id });
+    res.json({ success: true, message: 'Booking deleted successfully' });
+  } catch (error) { 
+    console.error("Delete Error:", error); 
+    res.status(500).json({ success: false, message: "Failed to delete booking" }); 
+  }
+});
+
+// 📜 View Certificate (Restored)
+app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
+  try {
+    const booking = await Booking.findById(req.params.id).populate('user').populate('technician');
+    if (!booking) return res.send("Certificate Not Found");
+
+    // Generate HTML Certificate
+    const html = `
+      <div style="font-family: Arial, sans-serif; border: 8px solid #2563eb; padding: 40px; max-width: 800px; margin: 20px auto; text-align: center; background: #fff;">
+        <h1 style="color: #2563eb; margin-bottom: 10px;">Serva Digital Warranty</h1>
+        <p style="color: #666; margin-bottom: 30px;">Official Repair Certification</p>
+        
+        <div style="border-top: 1px solid #eee; border-bottom: 1px solid #eee; padding: 20px 0; margin: 20px 0;">
+          <h2 style="margin: 0; color: #333;">${booking.deviceType.toUpperCase()} Repair</h2>
+          <p style="color: #555; font-size: 18px;">Issue: ${booking.issue}</p>
+          <p><strong>Booking Ref:</strong> ${booking.bookingId || booking._id}</p>
+          <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName + ' ' + booking.technician.lastName : 'Serva Certified Pro'}</p>
+        </div>
+        <div style="background: #eff6ff; padding: 15px; border-radius: 8px; display: inline-block;">
+          <span style="font-size: 24px;">🛡️</span>
+          <span style="font-weight: bold; color: #1e40af; margin-left: 10px;">6-Month Warranty Active</span>
+        </div>
+        <p style="margin-top: 30px; font-size: 12px; color: #aaa;">Verified by Serva Protocol • ${new Date().toLocaleDateString()}</p>
+      </div>
+    `;
+    res.send(html);
+  } catch (error) { 
+    res.status(500).send("Error generating certificate"); 
+  }
+});
+
+// �🔍 Get Single Booking (For Tracking)
 // Note: We allow this to be public for tracking, OR require auth. 
 // For now, let's use a flexible lookup (ID or BookingID)
 app.get('/api/v1/bookings/:id', async (req, res) => {
