@@ -279,7 +279,8 @@ const BookingsDashboard = () => {
                 <div className="mb-4">
                   <div className="mt-2 text-sm">
                     <span className="font-semibold text-gray-700">Technician: </span>
-                    {booking.technician ? (
+                    {/* SAFETY CHECK: Ensure we only render strings */}
+                    {booking.technician && typeof booking.technician === 'object' ? (
                       <span className="text-green-600 font-medium">
                         {booking.technician.firstName} {booking.technician.lastName}
                       </span>
