@@ -90,8 +90,7 @@ app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), asy
       if (!process.env.GEMINI_API_KEY) throw new Error("No API Key configured");
       
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      // Use 'gemini-pro-vision' which is compatible with v1beta
-      const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
       const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
       const imagePart = {
         inlineData: {

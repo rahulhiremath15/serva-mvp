@@ -47,15 +47,17 @@ const TechnicianSignup = () => {
 
       const result = await response.json();
       if (result.success) {
-        // 1. Force Save Credentials
+        // 1. Save credentials
         localStorage.setItem('token', result.token);
-        localStorage.setItem('userRole', 'technician'); 
+        localStorage.setItem('userRole', 'technician');
         
-        // 2. Alert (Gives time for storage to set)
-        alert("Welcome to the Pro Team! Click OK to enter your dashboard.");
+        // 2. Show alert
+        alert("Welcome! Redirecting to your Pro Dashboard...");
         
-        // 3. HARD RELOAD (Crucial)
-        window.location.href = '/technician-dashboard';
+        // 3. Small delay to ensure storage commit, then Hard Reload
+        setTimeout(() => {
+          window.location.href = '/technician-dashboard';
+        }, 100);
       } else {
         setError(result.message || 'Registration failed');
       }
