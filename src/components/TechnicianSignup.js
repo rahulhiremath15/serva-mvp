@@ -47,14 +47,14 @@ const TechnicianSignup = () => {
 
       const result = await response.json();
       if (result.success) {
-        // 1. HARD SAVE the credentials to LocalStorage
-        // This guarantees other components (like Navbar) can see them immediately
+        // 1. Force Save Credentials
         localStorage.setItem('token', result.token);
-        localStorage.setItem('userRole', 'technician'); 
+        localStorage.setItem('userRole', 'technician'); // FORCE the role
         
-        // 2. FORCE A HARD RELOAD
-        // Do NOT use 'navigate'. Use 'window.location.href'.
-        // This forces the App to restart, read the LocalStorage, and render the correct Technician Navbar.
+        // 2. Alert the user
+        alert("Welcome to the Pro Team! Redirecting to your dashboard...");
+        
+        // 3. HARD RELOAD (This fixes the UI lag)
         window.location.href = '/technician-dashboard';
       } else {
         setError(result.message || 'Registration failed');

@@ -39,34 +39,31 @@ const upload = multer({ storage });
 // 4. Static Files
 app.use('/uploads', express.static(uploadDir));
 
-// 📜 Certificate Route (Publicly Accessible)
+// 📜 Certificate Route (Public & Top Priority)
 app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
   try {
     const booking = await Booking.findById(req.params.id)
-      .populate('user')
-      .populate('technician');
+      .populate('user', 'firstName lastName')
+      .populate('technician', 'firstName lastName');
       
-    if (!booking) return res.send("<h2>Certificate Not Found</h2>");
+    if (!booking) return res.status(404).send("<h1>Certificate Not Found</h1>");
+    // Simple HTML Certificate
     const html = `
-  <div style="font-family: Helvetica, sans-serif; max-width: 800px; margin: 40px auto; padding: 40px; border: 10px solid #2563eb; text-align: center;">
-    <h1 style="color: #2563eb; font-size: 3em; margin-bottom: 0.2em;">Serva</h1>
-    <h2 style="color: #333; margin-top: 0;">Digital Repair Warranty</h2>
-    <hr style="border: 0; border-top: 1px solid #ccc; margin: 30px 0;">
-    
-    <p style="font-size: 1.2em; color: #555;">This certifies that the following device has been repaired by a Serva Certified Pro.</p>
-    
-    <div style="background: #f8fafc; padding: 20px; border-radius: 8px; margin: 30px 0; text-align: left;">
-      <p><strong>Device:</strong> ${booking.deviceType} (${booking.issue})</p>
-      <p><strong>Owner:</strong> ${booking.user?.firstName} ${booking.user?.lastName}</p>
-      <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName : 'Pending'}</p>
-      <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-      <p><strong>Ref ID:</strong> ${booking._id}</p>
+  <div style="font-family: sans-serif; border: 5px solid #2563eb; padding: 40px; max-width: 600px; margin: 20px auto; text-align: center;">
+    <h1 style="color: #2563eb;">Serva Digital Warranty</h1>
+    <p>This certifies that the device repair is complete.</p>
+    <hr/>
+    <h2 style="color: #333;">${booking.deviceType.toUpperCase()}</h2>
+    <p><strong>Issue:</strong> ${booking.issue}</p>
+    <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName : 'Serva Pro'}</p>
+    <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
+    <div style="background: #e0f2fe; padding: 10px; margin-top: 20px;">
+      <strong>✅ 6-Month Warranty Active</strong>
     </div>
-    <h3 style="color: #16a34a;">✅ 6-Month Warranty Active</h3>
   </div>
 `;
     res.send(html);
-  } catch (e) { res.status(500).send("Error: " + e.message); }
+  } catch (error) { res.status(500).send("Certificate Generation Error"); }
 });
 
 // ==========================================
@@ -84,30 +81,45 @@ app.get('/api/v1/nuke-db', async (req, res) => {
   }
 });
 
-// 🤖 AI Route (Fail-Safe Version)
+// 🤖 AI Analysis Route (Fail-Safe)
 app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
-    if (!process.env.GEMINI_API_KEY) {
-       // Graceful fallback if key is missing
-       return res.json({ success: true, diagnosis: { issue: "Visual Inspection Required", severity: "Moderate", advice: "Technician will diagnose on-site." } });
+    try {
+      // 1. Try to use Google AI (Gemini 1.5 Flash is the current standard)
+      if (!process.env.GEMINI_API_KEY) throw new Error("No API Key configured");
+      
+      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+      const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
+      const imagePart = {
+        inlineData: {
+          data: fs.readFileSync(req.file.path).toString("base64"),
+          mimeType: req.file.mimetype
+        },
+      };
+      const result = await model.generateContent([prompt, imagePart]);
+      const response = await result.response;
+      const text = response.text().replace(/```json|```/g, '').trim();
+      
+      // Success!
+      res.json({ success: true, diagnosis: JSON.parse(text) });
+    } catch (aiError) {
+      console.error("⚠️ AI Failed (Switching to Manual Mode):", aiError.message);
+      
+      // 2. FALLBACK: Return a dummy diagnosis so the app DOES NOT CRASH
+      res.json({ 
+        success: true, 
+        diagnosis: { 
+          issue: "Manual Inspection Required", 
+          severity: "Moderate", 
+          advice: "Our technician will diagnose the specific issue upon arrival." 
+        } 
+      });
     }
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    // FIX: Use 'gemini-pro-vision' which is compatible with v1beta API
-    const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
-
-    const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
-    const imagePart = { inlineData: { data: fs.readFileSync(req.file.path).toString("base64"), mimeType: req.file.mimetype }, };
-
-    const result = await model.generateContent([prompt, imagePart]);
-    const response = await result.response;
-    const text = response.text().replace(/```json|```/g, '').trim();
-    res.json({ success: true, diagnosis: JSON.parse(text) });
-
   } catch (error) { 
-    console.error("AI Error:", error.message); 
-    // Fallback: Return a valid response so the App DOES NOT CRASH
-    res.json({ success: true, diagnosis: { issue: "Assessment Pending", severity: "Moderate", advice: "Proceed with booking. Diagnosis will be done in-person." } }); 
+    console.error("Server Error:", error); 
+    res.status(500).json({ success: false, message: "Server Error" }); 
   }
 });
 
