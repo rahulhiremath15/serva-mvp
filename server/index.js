@@ -54,7 +54,7 @@ app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), asy
       return res.status(500).json({ success: false, message: "AI Service Not Configured" });
     }
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+    const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
     const deviceType = req.body.deviceType || "device";
     const prompt = `You are a professional repair expert. Analyze this image of a ${deviceType}.
 Return a purely JSON object (no markdown) with these keys:

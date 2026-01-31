@@ -194,59 +194,36 @@ export const AuthProvider = ({ children }) => {
     }
   };
 
-  // Register function
   const register = async (userData) => {
-    try {
-      dispatch({ type: AUTH_ACTIONS.REGISTER_START });
-      
-      console.log('Registration attempt:', userData);
-      console.log('API URL:', API_URL);
-
-      const response = await fetch(`${API_URL}/api/auth/register`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
-        },
-        body: JSON.stringify(userData)
-      });
-
-      console.log('Registration response status:', response.status);
-      console.log('Registration response URL:', response.url);
-
-      const data = await response.json();
-      console.log('Registration response data:', data);
-
-      if (data.success) {
-        setAuthToken(data.data.token);
+  try {
+    const response = await fetch(`${API_URL}/api/auth/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(userData)
+    });
+    const data = await response.json();
+    if (data.success) {
+      // FIX: Handle both flat 'token' and nested 'data.token' patterns to be safe
+      const token = data.token || (data.data && data.data.token);
+      const user = data.user || (data.data && data.data.user);
+      if (token) {
+        setAuthToken(token);
         dispatch({
           type: AUTH_ACTIONS.REGISTER_SUCCESS,
-          payload: data.data
+          payload: {
+            token,
+            user
+          }
         });
-        return { success: true };
-      } else {
-        dispatch({ 
-          type: AUTH_ACTIONS.REGISTER_FAILURE, 
-          payload: data.message || 'Registration failed' 
-        });
-        return { success: false, error: data.message || 'Registration failed' };
+        return { success: true, user }; // Return user for redirection logic
       }
-    } catch (error) {
-      console.error('Registration error:', error);
-      let errorMessage = 'Network error. Please try again.';
-      
-      if (error.name === 'TypeError' && error.message.includes('fetch')) {
-        errorMessage = 'Network connection failed. Please check your internet.';
-      } else if (error.name === 'AbortError') {
-        errorMessage = 'Request timed out. Please try again.';
-      }
-      
-      dispatch({ 
-        type: AUTH_ACTIONS.REGISTER_FAILURE, 
-        payload: errorMessage 
-      });
-      return { success: false, error: errorMessage };
     }
-  };
+    return { success: false, message: data.message || 'Registration failed' };
+  } catch (error) { 
+    console.error('Registration Error:', error); 
+    return { success: false, message: 'Network error during registration' }; 
+  }
+};
 
   // Logout function
   const logout = async () => {
