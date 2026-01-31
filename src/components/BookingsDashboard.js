@@ -277,8 +277,18 @@ const BookingsDashboard = () => {
 
                 {/* Technician */}
                 <div className="mb-4">
-                  <div className="text-sm font-medium text-gray-700 mb-1">Technician</div>
-                  <div className="text-gray-900">{booking.technician || 'Assigned'}</div>
+                  <div className="text-sm text-gray-600 mt-1">
+                    <span className="font-semibold">Technician: </span>
+                    {booking.technician ? (
+                      <span className="text-green-700 font-medium">
+                        {booking.technician.firstName} {booking.technician.lastName}
+                      </span>
+                    ) : (
+                      <span className="text-yellow-600 italic">
+                        Pending Assignment...
+                      </span>
+                    )}
+                  </div>
                 </div>
 
                 {/* Digital Warranty Badge */}

@@ -172,7 +172,7 @@ app.post('/api/v1/bookings', authenticateToken, upload.single('photo'), async (r
 app.get('/api/v1/bookings', authenticateToken, async (req, res) => {
   try {
     const bookings = await Booking.find({ user: req.user.id || req.user._id })
-      .populate('technician', 'firstName lastName') // Add this line
+      .populate('technician', 'firstName lastName') // <--- Vital for the UI
       .sort({ createdAt: -1 });
     res.json({ success: true, bookings });
   } catch (error) {

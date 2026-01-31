@@ -56,31 +56,41 @@ const BookingWizard = () => {
 
   const handleNext = async () => {
     if (currentStep < steps.length) {
-      // If moving from step 3 (Photo) to step 4 (Schedule) and we have a photo, trigger AI analysis
+      // Inside handleNext, when step === 3 (Photo)
       if (currentStep === 3 && bookingData.photo) {
+        setIsLoading(true);
         try {
-          setIsLoading(true);
           const formData = new FormData();
           formData.append('photo', bookingData.photo);
           formData.append('deviceType', bookingData.deviceType);
 
-          const response = await fetch('https://serva-backend.onrender.com/api/v1/analyze-issue', {
+          const apiUrl = process.env.REACT_APP_API_URL || 'https://serva-backend.onrender.com';
+          const response = await fetch(`${apiUrl}/api/v1/analyze-issue`, {
             method: 'POST',
-            headers: {
-              'Authorization': `Bearer ${token}`
+            headers: { 
+              'Authorization': `Bearer ${token}` 
             },
             body: formData
           });
-
-          const result = await response.json();
-          if (result.success) {
-            setDiagnosis(result.diagnosis);
+          
+          // Ideally we want 200, but if it fails, we JUST LOG IT and continue.
+          // Do NOT stop the user from moving to the next step.
+          if (response.ok) {
+            const result = await response.json();
+            if (result.success) {
+              setDiagnosis(result.diagnosis);
+            }
+          } else {
+            console.warn("AI Analysis unavailable (Non-blocking)");
           }
-        } catch (error) {
-          console.error('AI analysis failed:', error);
-        } finally {
-          setIsLoading(false);
+        } catch (error) { 
+          console.error("AI Analysis failed silently:", error); 
+        } finally { 
+          setIsLoading(false); 
+          // ALWAYS move to the next step, even if AI failed
+          setCurrentStep(currentStep + 1); 
         }
+        return; // Stop here so we don't call setCurrentStep twice
       }
       
       setCurrentStep(currentStep + 1);
