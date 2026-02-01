@@ -47,7 +47,7 @@ const TechnicianSignup = () => {
 
       const result = await response.json();
       if (result.success) {
-        // 1. Force Save Credentials with timestamp
+        // 1. Force Save Credentials
         localStorage.setItem('token', result.token);
         localStorage.setItem('userRole', 'technician');
         localStorage.setItem('roleTimestamp', Date.now().toString());
@@ -55,8 +55,10 @@ const TechnicianSignup = () => {
         // 2. Alert the user
         alert("Welcome to the team! Redirecting to your dashboard...");
         
-        // 3. FORCE NAVIGATION with cache busting
-        window.location.href = '/technician-dashboard?t=' + Date.now();
+        // 3. Force page reload with cache busting
+        setTimeout(() => {
+          window.location.replace('/technician-dashboard?t=' + Date.now());
+        }, 100);
       } else {
         setError(result.message || 'Registration failed');
       }
