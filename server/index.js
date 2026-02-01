@@ -88,68 +88,104 @@ app.get('/api/v1/ai-models', async (req, res) => {
       return res.json({ error: "No GEMINI_API_KEY configured" });
     }
     
-    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-    
-    // Test different API approaches
+    // Test direct API calls to find available models
     const results = [];
     
-    // Test 1: Try different model name formats
-    const alternativeModels = [
-      'models/gemini-1.5-flash',
-      'models/gemini-1.5-pro',
-      'models/gemini-pro-vision',
-      'models/gemini-pro',
-      'gemini-1.5-flash:generateContent',
-      'gemini-1.5-pro:generateContent',
-      'text-bison-001',
-      'chat-bison-001'
-    ];
-    
-    for (const modelName of alternativeModels) {
-      try {
-        const model = genAI.getGenerativeModel({ model: modelName });
-        const result = await model.generateContent("Hello");
-        results.push({ model: modelName, status: "WORKS", response: result.response.text().substring(0, 100) });
-      } catch (error) {
-        results.push({ model: modelName, status: "FAILED", error: error.message });
-      }
-    }
-    
-    // Test 2: Try different initialization methods
+    // Test 1: Direct API call to list models
     try {
-      // Test with explicit model config
-      const modelConfig = { 
-        model: "gemini-1.5-flash",
-        generationConfig: {
-          temperature: 0.7,
-          topK: 40,
-          topP: 0.95,
-          maxOutputTokens: 8192,
-        }
-      };
+      const fetch = require('node-fetch');
+      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
       
-      const model = genAI.getGenerativeModel(modelConfig);
-      const result = await model.generateContent("Test");
-      results.push({ model: "gemini-1.5-flash (with config)", status: "WORKS", response: result.response.text().substring(0, 100) });
+      const response = await fetch(listUrl);
+      const data = await response.json();
+      
+      if (data.models) {
+        const availableModels = data.models.map(model => ({
+          name: model.name,
+          displayName: model.displayName,
+          description: model.description,
+          supportedGenerationMethods: model.supportedGenerationMethods
+        }));
+        
+        results.push({ 
+          test: "Direct API List Models", 
+          status: "WORKS", 
+          models: availableModels 
+        });
+        
+        // Test each available model
+        for (const modelInfo of availableModels) {
+          const modelName = modelInfo.name.split('/').pop(); // Extract model name from full path
+          if (modelInfo.supportedGenerationMethods && modelInfo.supportedGenerationMethods.includes('generateContent')) {
+            try {
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+              const model = genAI.getGenerativeModel({ model: modelName });
+              const result = await model.generateContent("Hello");
+              results.push({ 
+                model: modelName, 
+                status: "WORKS", 
+                response: result.response.text().substring(0, 100),
+                displayName: modelInfo.displayName
+              });
+            } catch (error) {
+              results.push({ 
+                model: modelName, 
+                status: "FAILED", 
+                error: error.message,
+                displayName: modelInfo.displayName
+              });
+            }
+          }
+        }
+      } else {
+        results.push({ 
+          test: "Direct API List Models", 
+          status: "FAILED", 
+          error: "No models found in response",
+          fullResponse: data 
+        });
+      }
     } catch (error) {
-      results.push({ model: "gemini-1.5-flash (with config)", status: "FAILED", error: error.message });
+      results.push({ 
+        test: "Direct API List Models", 
+        status: "FAILED", 
+        error: error.message 
+      });
     }
     
-    // Test 3: Try the older API approach
+    // Test 2: Try older v1 API version
     try {
-      const { GoogleGenerativeAI } = require("@google/generative-ai");
-      const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = ai.getGenerativeModel({ model: "gemini-pro" });
-      const result = await model.generateContent("Test");
-      results.push({ model: "gemini-pro (old API)", status: "WORKS", response: result.response.text().substring(0, 100) });
+      const fetch = require('node-fetch');
+      const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${process.env.GEMINI_API_KEY}`;
+      
+      const response = await fetch(listUrl);
+      const data = await response.json();
+      
+      if (data.models) {
+        const v1Models = data.models.map(model => ({
+          name: model.name,
+          displayName: model.displayName,
+          supportedGenerationMethods: model.supportedGenerationMethods
+        }));
+        
+        results.push({ 
+          test: "Direct API List Models (v1)", 
+          status: "WORKS", 
+          models: v1Models 
+        });
+      }
     } catch (error) {
-      results.push({ model: "gemini-pro (old API)", status: "FAILED", error: error.message });
+      results.push({ 
+        test: "Direct API List Models (v1)", 
+        status: "FAILED", 
+        error: error.message 
+      });
     }
     
     res.json({ 
       success: true, 
       sdkVersion: require('@google/generative-ai/package.json').version,
-      message: "Testing different API approaches",
+      message: "Testing direct API calls to find available models",
       results 
     });
     
