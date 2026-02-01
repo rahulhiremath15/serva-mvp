@@ -81,6 +81,123 @@ app.get('/api/v1/nuke-db', async (req, res) => {
   }
 });
 
+// 🔍 AI Model Diagnostics Route
+app.get('/api/v1/ai-models', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({ error: "No GEMINI_API_KEY configured" });
+    }
+    
+    // Test direct API calls to find available models
+    const results = [];
+    
+    // Test 1: Direct API call to list models
+    try {
+      const fetch = require('node-fetch');
+      const listUrl = `https://generativelanguage.googleapis.com/v1beta/models?key=${process.env.GEMINI_API_KEY}`;
+      
+      const response = await fetch(listUrl);
+      const data = await response.json();
+      
+      if (data.models) {
+        const availableModels = data.models.map(model => ({
+          name: model.name,
+          displayName: model.displayName,
+          description: model.description,
+          supportedGenerationMethods: model.supportedGenerationMethods
+        }));
+        
+        results.push({ 
+          test: "Direct API List Models", 
+          status: "WORKS", 
+          models: availableModels 
+        });
+        
+        // Test each available model
+        for (const modelInfo of availableModels) {
+          const modelName = modelInfo.name.split('/').pop(); // Extract model name from full path
+          if (modelInfo.supportedGenerationMethods && modelInfo.supportedGenerationMethods.includes('generateContent')) {
+            try {
+              const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+              const model = genAI.getGenerativeModel({ model: modelName });
+              const result = await model.generateContent("Hello");
+              results.push({ 
+                model: modelName, 
+                status: "WORKS", 
+                response: result.response.text().substring(0, 100),
+                displayName: modelInfo.displayName
+              });
+            } catch (error) {
+              results.push({ 
+                model: modelName, 
+                status: "FAILED", 
+                error: error.message,
+                displayName: modelInfo.displayName
+              });
+            }
+          }
+        }
+      } else {
+        results.push({ 
+          test: "Direct API List Models", 
+          status: "FAILED", 
+          error: "No models found in response",
+          fullResponse: data 
+        });
+      }
+    } catch (error) {
+      results.push({ 
+        test: "Direct API List Models", 
+        status: "FAILED", 
+        error: error.message 
+      });
+    }
+    
+    // Test 2: Try older v1 API version
+    try {
+      const fetch = require('node-fetch');
+      const listUrl = `https://generativelanguage.googleapis.com/v1/models?key=${process.env.GEMINI_API_KEY}`;
+      
+      const response = await fetch(listUrl);
+      const data = await response.json();
+      
+      if (data.models) {
+        const v1Models = data.models.map(model => ({
+          name: model.name,
+          displayName: model.displayName,
+          supportedGenerationMethods: model.supportedGenerationMethods
+        }));
+        
+        results.push({ 
+          test: "Direct API List Models (v1)", 
+          status: "WORKS", 
+          models: v1Models 
+        });
+      }
+    } catch (error) {
+      results.push({ 
+        test: "Direct API List Models (v1)", 
+        status: "FAILED", 
+        error: error.message 
+      });
+    }
+    
+    res.json({ 
+      success: true, 
+      sdkVersion: require('@google/generative-ai/package.json').version,
+      message: "Testing direct API calls to find available models",
+      results 
+    });
+    
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // 🤖 AI Analysis Route (Fail-Safe)
 app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
