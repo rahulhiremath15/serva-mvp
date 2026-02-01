@@ -109,7 +109,7 @@ const BookingsDashboard = () => {
 
               {/* Actions */}
               <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                <a href={`/track/${booking._id || booking.bookingId}`} className="text-blue-600 text-sm hover:underline">Track Status</a>
+                <a href={`/track`} className="text-blue-600 text-sm hover:underline">Track Status</a>
                 <a href={`/api/v1/bookings/${booking._id}/certificate`} target="_blank" rel="noreferrer" className="text-gray-500 text-sm hover:text-blue-600">View Certificate</a>
               </div>
             </div>
