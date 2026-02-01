@@ -138,7 +138,15 @@ const BookingsDashboard = () => {
               {/* Actions */}
               <div className="mt-4 pt-4 border-t flex justify-between items-center">
                 <Link to="/track" className="text-blue-600 text-sm hover:underline">Track Status</Link>
-                <a href={`/api/v1/bookings/${booking._id}/certificate`} target="_blank" rel="noreferrer" className="text-gray-500 text-sm hover:text-blue-600">View Certificate</a>
+                <a 
+                  href={`/api/v1/bookings/${booking._id}/certificate`} 
+                  target="_blank" 
+                  rel="noreferrer" 
+                  className="text-gray-500 text-sm hover:text-blue-600"
+                  onClick={() => console.log('📄 Certificate clicked for booking:', booking._id)}
+                >
+                  View Certificate
+                </a>
               </div>
             </div>
           </div>
