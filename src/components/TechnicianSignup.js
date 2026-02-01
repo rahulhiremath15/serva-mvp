@@ -52,13 +52,18 @@ const TechnicianSignup = () => {
         localStorage.setItem('userRole', 'technician');
         localStorage.setItem('roleTimestamp', Date.now().toString());
         
-        // 2. Alert the user
+        // 2. Force immediate state update by dispatching custom event
+        window.dispatchEvent(new CustomEvent('roleChanged', { 
+          detail: { role: 'technician', token: result.token } 
+        }));
+        
+        // 3. Alert the user
         alert("Welcome to the team! Redirecting to your dashboard...");
         
-        // 3. Force page reload with cache busting
+        // 4. Force complete page reload
         setTimeout(() => {
-          window.location.replace('/technician-dashboard?t=' + Date.now());
-        }, 100);
+          window.location.href = '/technician-dashboard?refresh=' + Date.now();
+        }, 200);
       } else {
         setError(result.message || 'Registration failed');
       }

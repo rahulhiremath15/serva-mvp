@@ -42,11 +42,19 @@ app.use('/uploads', express.static(uploadDir));
 // 📜 Certificate Route (Public & Top Priority)
 app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
   try {
+    console.log('📄 Certificate request for booking ID:', req.params.id);
+    
     const booking = await Booking.findById(req.params.id)
       .populate('user', 'firstName lastName')
       .populate('technician', 'firstName lastName');
       
-    if (!booking) return res.status(404).send("<h1>Certificate Not Found</h1>");
+    console.log('📄 Booking found:', booking ? 'YES' : 'NO');
+    
+    if (!booking) {
+      console.log('❌ Certificate: Booking not found');
+      return res.status(404).send("<h1>Certificate Not Found</h1>");
+    }
+    
     // Simple HTML Certificate
     const html = `
   <div style="font-family: sans-serif; border: 5px solid #2563eb; padding: 40px; max-width: 600px; margin: 20px auto; text-align: center;">
@@ -62,8 +70,13 @@ app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
     </div>
   </div>
 `;
+    
+    console.log('📄 Certificate HTML generated successfully');
     res.send(html);
-  } catch (error) { res.status(500).send("Certificate Generation Error"); }
+  } catch (error) { 
+    console.error('❌ Certificate Error:', error);
+    res.status(500).send("Certificate Generation Error"); 
+  }
 });
 
 // ==========================================

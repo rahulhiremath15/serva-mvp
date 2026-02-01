@@ -316,6 +316,31 @@ export const AuthProvider = ({ children }) => {
   // Load user on mount
   useEffect(() => {
     loadUser();
+    
+    // Listen for custom role change events
+    const handleRoleChange = (event) => {
+      const { role, token } = event.detail;
+      console.log('🔄 Role change event received:', { role, token });
+      
+      // Update state immediately
+      dispatch({
+        type: AUTH_ACTIONS.LOAD_USER_SUCCESS,
+        payload: {
+          user: { role },
+          token
+        }
+      });
+      
+      // Update localStorage
+      localStorage.setItem('userRole', role);
+      localStorage.setItem('token', token);
+    };
+    
+    window.addEventListener('roleChanged', handleRoleChange);
+    
+    return () => {
+      window.removeEventListener('roleChanged', handleRoleChange);
+    };
   }, [loadUser]);
 
   const value = {
