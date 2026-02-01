@@ -90,51 +90,69 @@ app.get('/api/v1/ai-models', async (req, res) => {
     
     const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
     
-    // Try to list available models
-    try {
-      const models = await genAI.listModels();
-      const modelList = models.models.map(model => ({
-        name: model.name,
-        displayName: model.displayName,
-        description: model.description,
-        supportedGenerationMethods: model.supportedGenerationMethods,
-        supportedActions: model.supportedActions
-      }));
-      
-      res.json({ 
-        success: true, 
-        sdkVersion: require('@google/generative-ai/package.json').version,
-        availableModels: modelList 
-      });
-    } catch (listError) {
-      // If listModels doesn't work, try common model names
-      const commonModels = [
-        'gemini-1.5-flash',
-        'gemini-1.5-pro',
-        'gemini-pro-vision',
-        'gemini-pro',
-        'gemini-1.0-pro'
-      ];
-      
-      const modelTests = [];
-      
-      for (const modelName of commonModels) {
-        try {
-          const model = genAI.getGenerativeModel({ model: modelName });
-          await model.generateContent("test");
-          modelTests.push({ model: modelName, status: "WORKS", error: null });
-        } catch (error) {
-          modelTests.push({ model: modelName, status: "FAILED", error: error.message });
-        }
+    // Test different API approaches
+    const results = [];
+    
+    // Test 1: Try different model name formats
+    const alternativeModels = [
+      'models/gemini-1.5-flash',
+      'models/gemini-1.5-pro',
+      'models/gemini-pro-vision',
+      'models/gemini-pro',
+      'gemini-1.5-flash:generateContent',
+      'gemini-1.5-pro:generateContent',
+      'text-bison-001',
+      'chat-bison-001'
+    ];
+    
+    for (const modelName of alternativeModels) {
+      try {
+        const model = genAI.getGenerativeModel({ model: modelName });
+        const result = await model.generateContent("Hello");
+        results.push({ model: modelName, status: "WORKS", response: result.response.text().substring(0, 100) });
+      } catch (error) {
+        results.push({ model: modelName, status: "FAILED", error: error.message });
       }
-      
-      res.json({ 
-        success: true, 
-        sdkVersion: require('@google/generative-ai/package.json').version,
-        message: "listModels not available, tested common models",
-        modelTests 
-      });
     }
+    
+    // Test 2: Try different initialization methods
+    try {
+      // Test with explicit model config
+      const modelConfig = { 
+        model: "gemini-1.5-flash",
+        generationConfig: {
+          temperature: 0.7,
+          topK: 40,
+          topP: 0.95,
+          maxOutputTokens: 8192,
+        }
+      };
+      
+      const model = genAI.getGenerativeModel(modelConfig);
+      const result = await model.generateContent("Test");
+      results.push({ model: "gemini-1.5-flash (with config)", status: "WORKS", response: result.response.text().substring(0, 100) });
+    } catch (error) {
+      results.push({ model: "gemini-1.5-flash (with config)", status: "FAILED", error: error.message });
+    }
+    
+    // Test 3: Try the older API approach
+    try {
+      const { GoogleGenerativeAI } = require("@google/generative-ai");
+      const ai = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+      const model = ai.getGenerativeModel({ model: "gemini-pro" });
+      const result = await model.generateContent("Test");
+      results.push({ model: "gemini-pro (old API)", status: "WORKS", response: result.response.text().substring(0, 100) });
+    } catch (error) {
+      results.push({ model: "gemini-pro (old API)", status: "FAILED", error: error.message });
+    }
+    
+    res.json({ 
+      success: true, 
+      sdkVersion: require('@google/generative-ai/package.json').version,
+      message: "Testing different API approaches",
+      results 
+    });
+    
   } catch (error) {
     res.json({ 
       success: false, 
