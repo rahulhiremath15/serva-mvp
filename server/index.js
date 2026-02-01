@@ -81,6 +81,69 @@ app.get('/api/v1/nuke-db', async (req, res) => {
   }
 });
 
+// 🔍 AI Model Diagnostics Route
+app.get('/api/v1/ai-models', async (req, res) => {
+  try {
+    if (!process.env.GEMINI_API_KEY) {
+      return res.json({ error: "No GEMINI_API_KEY configured" });
+    }
+    
+    const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+    
+    // Try to list available models
+    try {
+      const models = await genAI.listModels();
+      const modelList = models.models.map(model => ({
+        name: model.name,
+        displayName: model.displayName,
+        description: model.description,
+        supportedGenerationMethods: model.supportedGenerationMethods,
+        supportedActions: model.supportedActions
+      }));
+      
+      res.json({ 
+        success: true, 
+        sdkVersion: require('@google/generative-ai/package.json').version,
+        availableModels: modelList 
+      });
+    } catch (listError) {
+      // If listModels doesn't work, try common model names
+      const commonModels = [
+        'gemini-1.5-flash',
+        'gemini-1.5-pro',
+        'gemini-pro-vision',
+        'gemini-pro',
+        'gemini-1.0-pro'
+      ];
+      
+      const modelTests = [];
+      
+      for (const modelName of commonModels) {
+        try {
+          const model = genAI.getGenerativeModel({ model: modelName });
+          await model.generateContent("test");
+          modelTests.push({ model: modelName, status: "WORKS", error: null });
+        } catch (error) {
+          modelTests.push({ model: modelName, status: "FAILED", error: error.message });
+        }
+      }
+      
+      res.json({ 
+        success: true, 
+        sdkVersion: require('@google/generative-ai/package.json').version,
+        message: "listModels not available, tested common models",
+        modelTests 
+      });
+    }
+  } catch (error) {
+    res.json({ 
+      success: false, 
+      error: error.message,
+      stack: error.stack 
+    });
+  }
+});
+
 // 🤖 AI Analysis Route (Fail-Safe)
 app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), async (req, res) => {
   try {
