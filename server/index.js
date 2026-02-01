@@ -203,11 +203,11 @@ app.post('/api/v1/analyze-issue', authenticateToken, upload.single('photo'), asy
   try {
     if (!req.file) return res.status(400).json({ success: false, message: "No image uploaded" });
     try {
-      // 1. Try to use Google AI (Gemini 1.5 Flash is the current standard)
+      // 1. Try to use Google AI (Gemini 2.5 Flash is the current working model)
       if (!process.env.GEMINI_API_KEY) throw new Error("No API Key configured");
       
       const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-pro-vision" });
+      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
       const prompt = `Analyze this device repair issue. Return JSON: { "issue": "string", "severity": "string", "advice": "string" }`;
       const imagePart = {
         inlineData: {

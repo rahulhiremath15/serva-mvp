@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
 const BookingsDashboard = () => {
@@ -35,6 +36,27 @@ const BookingsDashboard = () => {
     return "Unknown";
   };
 
+  // Delete booking function
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this booking history?')) return;
+    try {
+      const response = await fetch(`https://serva-backend.onrender.com/api/v1/bookings/${id}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${token}` 
+        }
+      });
+      if (response.ok) {
+        // Remove from local state immediately
+        setBookings(bookings.filter(b => b._id !== id));
+      } else {
+        alert('Failed to delete booking');
+      }
+    } catch (error) {
+      console.error('Error deleting:', error);
+    }
+  };
+
   if (loading) return "Loading your dashboard...";
 
   return (
@@ -59,7 +81,7 @@ const BookingsDashboard = () => {
                      booking.deviceType?.toLowerCase() === 'tablet' ? '📱' : '🔧'}
                   </span>
                   <div>
-                    <h3 className="font-semibold text-gray-900">{booking._id || booking.bookingId}</h3>
+                    <h3 className="font-semibold text-gray-900">{booking.bookingId || booking._id}</h3>
                     <p className="text-sm text-gray-600">
                       {booking.deviceType ? booking.deviceType.charAt(0).toUpperCase() + booking.deviceType.slice(1) : 'Unknown Device'}
                     </p>
@@ -70,6 +92,12 @@ const BookingsDashboard = () => {
                     {booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : 'Invalid Date'}
                   </div>
                   <div className="text-lg font-semibold text-gray-900">${booking.cost || 0}</div>
+                  <button
+                    onClick={() => handleDelete(booking._id)}
+                    className="text-red-500 hover:text-red-700 text-sm font-medium mt-1"
+                  >
+                    Delete
+                  </button>
                 </div>
               </div>
 
@@ -109,7 +137,7 @@ const BookingsDashboard = () => {
 
               {/* Actions */}
               <div className="mt-4 pt-4 border-t flex justify-between items-center">
-                <a href={`/track`} className="text-blue-600 text-sm hover:underline">Track Status</a>
+                <Link to="/track" className="text-blue-600 text-sm hover:underline">Track Status</Link>
                 <a href={`/api/v1/bookings/${booking._id}/certificate`} target="_blank" rel="noreferrer" className="text-gray-500 text-sm hover:text-blue-600">View Certificate</a>
               </div>
             </div>
