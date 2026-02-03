@@ -45,37 +45,155 @@ app.get('/api/v1/bookings/:id/certificate', async (req, res) => {
     console.log('📄 Certificate request for booking ID:', req.params.id);
     
     const booking = await Booking.findById(req.params.id)
-      .populate('user', 'firstName lastName')
-      .populate('technician', 'firstName lastName');
+      .populate('user', 'firstName lastName email phone')
+      .populate('technician', 'firstName lastName email');
       
     console.log('📄 Booking found:', booking ? 'YES' : 'NO');
     
     if (!booking) {
       console.log('❌ Certificate: Booking not found');
-      return res.status(404).send("<h1>Certificate Not Found</h1>");
+      return res.status(404).send(`
+        <html>
+          <head><title>Certificate Not Found</title></head>
+          <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+            <h1 style="color: #dc2626;">❌ Certificate Not Found</h1>
+            <p>The requested booking certificate could not be found.</p>
+            <p>Please check your booking ID and try again.</p>
+          </body>
+        </html>
+      `);
     }
+
+    // Generate QR code data
+    const qrData = JSON.stringify({
+      bookingId: booking.bookingId || booking._id,
+      deviceType: booking.deviceType,
+      issue: booking.issue,
+      status: booking.status || 'Completed',
+      date: booking.createdAt,
+      technician: booking.technician ? `${booking.technician.firstName} ${booking.technician.lastName}` : 'Serva Pro',
+      warranty: '6 Months'
+    });
+
+    // Generate QR code
+    const QRCode = require('qrcode');
+    const qrCodeDataUrl = await QRCode.toDataURL(qrData);
     
-    // Simple HTML Certificate
+    console.log('📄 QR Code generated successfully');
+
+    // Enhanced HTML Certificate with QR Code
     const html = `
-  <div style="font-family: sans-serif; border: 5px solid #2563eb; padding: 40px; max-width: 600px; margin: 20px auto; text-align: center;">
-    <h1 style="color: #2563eb;">Serva Digital Warranty</h1>
-    <p>This certifies that the device repair is complete.</p>
-    <hr/>
-    <h2 style="color: #333;">${booking.deviceType.toUpperCase()}</h2>
-    <p><strong>Issue:</strong> ${booking.issue}</p>
-    <p><strong>Technician:</strong> ${booking.technician ? booking.technician.firstName : 'Serva Pro'}</p>
-    <p><strong>Date:</strong> ${new Date().toLocaleDateString()}</p>
-    <div style="background: #e0f2fe; padding: 10px; margin-top: 20px;">
-      <strong>✅ 6-Month Warranty Active</strong>
-    </div>
-  </div>
-`;
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>Serva Digital Warranty - ${booking.bookingId || booking._id}</title>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <style>
+          body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background: #f8fafc; }
+          .certificate { max-width: 800px; margin: 0 auto; background: white; border: 3px solid #3b82f6; border-radius: 12px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); overflow: hidden; }
+          .header { background: linear-gradient(135deg, #3b82f6, #1d4ed8); color: white; padding: 30px; text-align: center; }
+          .header h1 { margin: 0; font-size: 2.5em; font-weight: 700; }
+          .header p { margin: 10px 0 0 0; opacity: 0.9; font-size: 1.1em; }
+          .content { padding: 40px; }
+          .repair-details { background: #f1f5f9; padding: 25px; border-radius: 8px; margin: 20px 0; border-left: 4px solid #3b82f6; }
+          .repair-details h2 { margin: 0 0 15px 0; color: #1e293b; font-size: 1.4em; }
+          .detail-row { display: flex; justify-content: space-between; margin: 10px 0; padding: 8px 0; border-bottom: 1px solid #e2e8f0; }
+          .detail-label { font-weight: 600; color: #475569; }
+          .detail-value { color: #1e293b; font-weight: 500; }
+          .warranty { background: linear-gradient(135deg, #10b981, #059669); color: white; padding: 20px; border-radius: 8px; text-align: center; margin: 25px 0; }
+          .warranty h3 { margin: 0; font-size: 1.3em; }
+          .qr-section { text-align: center; margin: 30px 0; padding: 20px; background: #f8fafc; border-radius: 8px; }
+          .qr-section h4 { margin: 0 0 15px 0; color: #475569; }
+          .qr-code { max-width: 200px; margin: 0 auto; }
+          .qr-code img { width: 100%; height: auto; border: 3px solid #3b82f6; border-radius: 8px; }
+          .footer { text-align: center; padding: 20px; background: #f1f5f9; color: #64748b; font-size: 0.9em; }
+          .verification-info { background: #fef3c7; border: 1px solid #f59e0b; padding: 15px; border-radius: 6px; margin: 20px 0; }
+          .verification-info h5 { margin: 0 0 10px 0; color: #92400e; }
+          @media print { body { padding: 0; } .certificate { box-shadow: none; } }
+        </style>
+      </head>
+      <body>
+        <div class="certificate">
+          <div class="header">
+            <h1>🔧 Serva Digital Warranty</h1>
+            <p>Official Device Repair Certification</p>
+          </div>
+          
+          <div class="content">
+            <div class="repair-details">
+              <h2>📱 ${booking.deviceType ? booking.deviceType.toUpperCase() : 'DEVICE'} Repair</h2>
+              <div class="detail-row">
+                <span class="detail-label">Booking Reference:</span>
+                <span class="detail-value">${booking.bookingId || booking._id}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Issue Fixed:</span>
+                <span class="detail-value">${booking.issue || 'General Repair'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Service Date:</span>
+                <span class="detail-value">${booking.createdAt ? new Date(booking.createdAt).toLocaleDateString() : 'N/A'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Technician:</span>
+                <span class="detail-value">${booking.technician ? `${booking.technician.firstName} ${booking.technician.lastName}` : 'Serva Certified Pro'}</span>
+              </div>
+              <div class="detail-row">
+                <span class="detail-label">Customer:</span>
+                <span class="detail-value">${booking.user ? `${booking.user.firstName} ${booking.user.lastName}` : 'N/A'}</span>
+              </div>
+            </div>
+
+            <div class="warranty">
+              <h3>🛡️ 6-Month Warranty Active</h3>
+              <p>This repair is covered under our comprehensive warranty</p>
+            </div>
+
+            <div class="verification-info">
+              <h5>📱 Verify This Certificate</h5>
+              <p>Scan the QR code below to verify the authenticity of this warranty certificate</p>
+            </div>
+
+            <div class="qr-section">
+              <h4>📲 Scan for Verification</h4>
+              <div class="qr-code">
+                <img src="${qrCodeDataUrl}" alt="Warranty QR Code" />
+              </div>
+              <p style="margin: 10px 0 0 0; font-size: 0.9em; color: #64748b;">
+                Booking ID: ${booking.bookingId || booking._id}
+              </p>
+            </div>
+          </div>
+
+          <div class="footer">
+            <p><strong>Serva Digital Repair Services</strong></p>
+            <p>Verified by Serva Protocol • Generated on ${new Date().toLocaleDateString()}</p>
+            <p style="font-size: 0.8em; margin-top: 10px;">
+              This certificate is digitally verifiable and tamper-proof
+            </p>
+          </div>
+        </div>
+      </body>
+      </html>
+    `;
     
     console.log('📄 Certificate HTML generated successfully');
+    res.setHeader('Content-Type', 'text/html');
     res.send(html);
   } catch (error) { 
     console.error('❌ Certificate Error:', error);
-    res.status(500).send("Certificate Generation Error"); 
+    res.status(500).send(`
+      <html>
+        <head><title>Certificate Error</title></head>
+        <body style="font-family: Arial, sans-serif; text-align: center; padding: 50px;">
+          <h1 style="color: #dc2626;">❌ Certificate Generation Error</h1>
+          <p>We encountered an error generating your certificate.</p>
+          <p>Please try again or contact support.</p>
+          <p style="font-size: 0.8em; color: #666;">Error: ${error.message}</p>
+        </body>
+      </html>
+    `); 
   }
 });
 

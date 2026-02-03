@@ -19,8 +19,8 @@ const Navigation = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   
-  // Don't show navigation on auth pages
-  if (location.pathname === '/login' || location.pathname === '/signup') {
+  // Don't show navigation on auth pages AND technician signup
+  if (location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/partner-signup') {
     return null;
   }
 
