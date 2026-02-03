@@ -19,6 +19,8 @@ const Navigation = () => {
   const location = useLocation();
   const { user, isAuthenticated } = useAuth();
   
+  // Serva Digital Repair Services - v2.1.3
+  // Last Updated: 2026-02-03 20:15
   // Don't show navigation on auth pages AND technician signup
   if (location.pathname === '/login' || location.pathname === '/signup' || location.pathname === '/partner-signup') {
     return null;
